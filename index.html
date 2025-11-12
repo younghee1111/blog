@@ -1,86 +1,322 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>알람 테스트</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>일정관리 시스템 - Netlify용</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-            background-color: #f4f4f4;
-        }
-        button {
-            padding: 10px 20px;
-            margin: 10px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
-        #alert-btn { background-color: #4CAF50; color: white; }
-        #desktop-btn { background-color: #008CBA; color: white; }
-        
-        #alert-btn:hover { background-color: #45a049; }
-        #desktop-btn:hover { background-color: #007bb5; }
+        html { overflow-y: scroll; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; margin-bottom: 20px; }
+
+        button { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
+        button:hover { filter: brightness(0.95); }
+        .btn-soft-green { background:#E5F7E9; color:#1e5e2f; }
+        .btn-soft-violet { background:#F0E9FF; color:#5a2e98; }
+        .btn-soft-orange { background:#FFE8D6; color:#8a4b13; }
+        .btn-soft-blue { background:#E6F0FF; color:#1b4fa3; }
+        .btn-danger { background:#FDE2E1; color:#8B1E1A; }
+
+        .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .row.space { margin-bottom: 10px; }
+        .row .spacer { margin-left:auto; }
+
+        .start-time-input { margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .start-time-input label { font-weight: bold; color: #2c3e50; }
+        .start-time-input input { width: 150px; padding:8px 10px; border:1px solid #ccc; border-radius:6px; }
+
+        table { width:100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        th { background: #34495e; color: white; }
+
+        .duration-cell { background: #ecf0f1; width: 70px; text-align:center; }
+        .duration-cell input { text-align:center; width:100%; background: transparent; border: none; outline: none; }
+        .time-cell { background: #ecf0f1; }
+        .task-cell { background: white; text-align:left; }
+
+        .task-input { background: transparent; border: none; outline: none; width: 100%; color:#2c3e50; font-size:14px; padding:8px; }
+        .task-input.done { background: transparent; color:#1e8449; }
+
+        .task-pill { display:block; width:100%; border-radius:6px; padding:2px 5px; font-size:14px; font-weight:500; box-sizing:border-box; }
+        .task-pill.green { background:#E8FBE8; color:#1E8449; }
+        .task-pill.purple { background:#F3E8FF; color:#5A2E98; }
+
+        .btn-action { margin-left:10px; }
+
+        #scheduleBody tr:hover { background:#fafafa; }
+        tr.active .time-cell { background:#FFF7E6 !important; font-weight:700; }
+        .task-cell.completed { background:#E8FBE8 !important; }
+        .task-cell.meal { background:#F3E8FF !important; color:#5A2E98; }
+
+        @media (max-width: 720px){ th, td { padding:4px; font-size:13px; } .task-pill { padding:2px 5px; } .start-time-input input { width:120px; } }
     </style>
 </head>
 <body>
-    <h1>알람/알림 메시지 테스트</h1>
-    <p>아래 버튼을 눌러보세요.</p>
+<div class="container">
+    <h1>📅 일정관리 시스템</h1>
 
-    <button id="alert-btn" onclick="showAlert()">Alert 팝업 띄우기</button>
+    <div class="start-time-input">
+        <label>시작시간:</label>
+        <input type="text" id="startTime" value="9:00" onchange="updateAllTimes()" placeholder="예: 9:00" />
+    </div>
 
-    <button id="desktop-btn" onclick="requestAndShowNotification()">데스크톱 알림 띄우기</button>
+    <div class="row space">
+        <div class="row">
+            <button class="btn-soft-green" onclick="addRow()">➕ 행 추가</button>
+            <button class="btn-soft-violet" onclick="resetChecks()">✅ 체크 초기화</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="row">
+            <button class="btn-soft-orange" onclick="clearData()">🗑️ 초기화</button>
+            <button class="btn-soft-blue" onclick="exportAll()">📤 내보내기</button>
+            <button class="btn-soft-violet" onclick="document.getElementById('importFile').click()">📥 불러오기</button>
+            <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importAll(event)" />
+            <button class="btn-soft-green" onclick="notifyTest()">🔔 알림 테스트</button>
+        </div>
+    </div>
 
-    <script>
-        // 1. Alert 팝업창 띄우기 함수
-        function showAlert() {
-            // 알림 메시지를 여기에 입력하세요!
-            const message = "🔔 팝업창 테스트 성공! 확인 버튼을 눌러 닫아주세요.";
-            
-            // alert() 함수는 브라우저 창 중앙에 간단한 팝업을 띄웁니다.
-            alert(message);
+    <table id="scheduleTable">
+        <thead>
+            <tr>
+                <th style="width:70px;">시간 단위</th>
+                <th style="width:120px;">시간</th>
+                <th style="width:50px;">완료</th>
+                <th>할일</th>
+                <th style="width:130px;">작업</th>
+            </tr>
+        </thead>
+        <tbody id="scheduleBody"></tbody>
+    </table>
+</div>
+
+<script>
+let schedules = [];
+let savedStartTime = '9:00';
+let notificationPermissionRequested = false;
+
+function loadData(){
+    const saved = localStorage.getItem('scheduleData');
+    const savedTime = localStorage.getItem('startTime');
+    if(saved){
+        schedules = JSON.parse(saved);
+    } else {
+        const auto = localStorage.getItem('autoBackup');
+        if(auto){
+            try{
+                const data = JSON.parse(auto);
+                if(Array.isArray(data.schedules)) schedules = data.schedules;
+                if(data.startTime) document.getElementById('startTime').value = data.startTime;
+            }catch(e){ schedules = [{duration:1, task:'', completed:false}]; }
+        } else {
+            schedules = [{duration:1, task:'', completed:false}];
         }
+    }
+    if(savedTime){ document.getElementById('startTime').value = savedTime; }
+    ensureDailyReset();
+    renderTable();
+    
+    // 페이지 로드 시 권한 요청 (한 번만)
+    requestNotificationPermissionOnce();
+}
 
-        // 실제로 데스크톱 알림을 생성하는 함수
-        function showDesktopNotification(title, bodyText) {
-            // Notification 객체를 생성하여 OS 알림을 띄웁니다.
-            new Notification(title, {
-                body: bodyText,
-                tag: 'test-tag' 
-            });
-        }
+function requestNotificationPermissionOnce(){
+    if(!('Notification' in window)) return;
+    if(notificationPermissionRequested) return;
+    
+    const permissionAsked = localStorage.getItem('notificationPermissionAsked');
+    if(permissionAsked === 'true') {
+        notificationPermissionRequested = true;
+        return;
+    }
+    
+    if(Notification.permission === 'default'){
+        Notification.requestPermission().then(permission => {
+            console.log('알림 권한:', permission);
+            localStorage.setItem('notificationPermissionAsked', 'true');
+            notificationPermissionRequested = true;
+        });
+    } else {
+        notificationPermissionRequested = true;
+    }
+}
 
-        // 2. 데스크톱 알림 띄우기 함수 (Notification API 사용)
-        function requestAndShowNotification() {
-            // Notification API 지원 여부 확인
-            if (!("Notification" in window)) {
-                alert("이 브라우저는 데스크톱 알림을 지원하지 않습니다.");
-                return;
+function saveData(){
+    localStorage.setItem('scheduleData', JSON.stringify(schedules));
+    localStorage.setItem('startTime', document.getElementById('startTime').value);
+    autoBackup();
+}
+
+function parseTime(t){ const [h,m] = t.split(':').map(Number); return h + m/60; }
+function formatTime(h){
+    const hours = Math.floor(h);
+    const minutes = Math.round((h - hours) * 60);
+    let displayHour = hours % 12; if(displayHour === 0) displayHour = 12;
+    const ampm = hours < 12 ? '' : '';
+    return `${displayHour}:${minutes.toString().padStart(2,'0')} ${ampm}`;
+}
+function nowInHours(){ const n=new Date(); return n.getHours() + n.getMinutes()/60; }
+
+function calculateTimes(){
+    let cur = parseTime(document.getElementById('startTime').value);
+    schedules.forEach(s=>{ s.start = formatTime(cur); s.startNum = cur; cur += s.duration; s.end = formatTime(cur); s.endNum = cur; });
+}
+
+function renderTable(){
+    calculateTimes();
+    const tbody = document.getElementById('scheduleBody');
+    tbody.innerHTML = '';
+    const nowH = nowInHours();
+    schedules.forEach((s,i)=>{
+        const tr = document.createElement('tr');
+        if(nowH>=s.startNum && nowH<s.endNum) tr.classList.add('active');
+
+        const d = document.createElement('td'); d.className='duration-cell'; d.innerHTML=`<input type="number" step="0.5" value="${s.duration}" onchange="updateDuration(${i},this.value)">`; tr.appendChild(d);
+        const t = document.createElement('td'); t.className='time-cell'; t.textContent = `${s.start} - ${s.end}`; tr.appendChild(t);
+        const c = document.createElement('td'); c.innerHTML = `<input type='checkbox' ${s.completed?'checked':''} onchange='toggleCompleted(${i},this.checked)'>`; tr.appendChild(c);
+
+        const task = document.createElement('td'); task.className='task-cell';
+        const taskInput = `<input class='task-input${s.completed?' done':''}' type='text' value='${s.task||''}' onchange='updateTask(${i},this.value)'>`;
+        const isMeal = /점심|저녁|lunch|dinner/.test(s.task);
+        task.innerHTML = isMeal ? `<div class='task-pill purple'>${taskInput}</div>` : `${taskInput}`;
+        if(s.completed) task.classList.add('completed');
+        if(isMeal) task.classList.add('meal');
+        tr.appendChild(task);
+
+        const ops = document.createElement('td');
+        ops.innerHTML = `<button class='btn-soft-blue' onclick='copyRow(${i})'>복사</button><button class='btn-danger btn-action' onclick='deleteRow(${i})'>삭제</button>`;
+        tr.appendChild(ops);
+        tbody.appendChild(tr);
+    });
+}
+
+function updateDuration(i,v){ schedules[i].duration = parseFloat(v) || 0.5; updateAllTimes(); }
+function updateTask(i,v){ schedules[i].task=v; saveData(); renderTable(); }
+function toggleCompleted(i,ch){
+    schedules[i].completed = !!ch;
+    const row = document.querySelectorAll('#scheduleBody tr')[i];
+    const taskCell = row ? row.querySelector('.task-cell') : null;
+    if(taskCell){ taskCell.classList.toggle('completed', !!ch); }
+    const input = row ? row.querySelector('.task-input') : null;
+    if(input){ if(ch) input.classList.add('done'); else input.classList.remove('done'); }
+    saveData();
+}
+
+function addRow(){ schedules.push({duration:1, task:'', completed:false}); updateAllTimes(); }
+function deleteRow(i){ if(schedules.length===1){ alert('최소 1행 필요'); return; } schedules.splice(i,1); updateAllTimes(); }
+function copyRow(i){ const s=schedules[i]; const c={duration:s.duration, task:'', completed:false}; schedules.splice(i+1,0,c); updateAllTimes(); }
+function resetChecks(){ schedules.forEach(s=>s.completed=false); saveData(); renderTable(); }
+
+function updateAllTimes(){ calculateTimes(); renderTable(); saveData(); autoCheckByNow(); }
+
+function autoCheckByNow(){ ensureDailyReset(); const n=nowInHours(); let changed=false; calculateTimes(); schedules.forEach(s=>{ if(!s.completed && n>=s.endNum){ s.completed=true; changed=true; } }); if(changed){ saveData(); renderTable(); } }
+
+function ensureDailyReset(){
+    const today = new Date().toDateString();
+    const last = localStorage.getItem('lastReset');
+    if(last !== today){
+        schedules.forEach(s=>{ s.completed=false; s._notified5 = false; });
+        localStorage.setItem('lastReset', today);
+        saveData();
+        renderTable();
+    }
+}
+
+function clearData(){ if(confirm('모든 데이터를 초기화하시겠습니까?')){ localStorage.clear(); location.reload(); } }
+
+function exportAll(){ const blob=new Blob([JSON.stringify(schedules,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='schedule_backup.json'; a.click(); }
+function importAll(e){ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ schedules=JSON.parse(r.result); saveData(); renderTable(); }; r.readAsText(f); }
+
+function autoBackup(){
+    try{
+        const payload = { schedules, startTime: document.getElementById('startTime').value, ts: new Date().toISOString() };
+        localStorage.setItem('autoBackup', JSON.stringify(payload));
+    }catch(e){ console.warn('자동 백업 실패:', e); }
+}
+
+function notifyUpcomingTasks(){
+    if(!('Notification' in window)) return;
+    if(Notification.permission !== 'granted') {
+        console.log('알림 권한 없음:', Notification.permission);
+        return;
+    }
+
+    const now = nowInHours();
+    let changed = false;
+    
+    schedules.forEach((s, idx)=>{
+        if(s.completed || s._notified5) return;
+        
+        const diff = s.endNum - now; // 시간 단위 차이
+        const diffMinutes = diff * 60; // 분 단위로 변환
+        
+        console.log(`[${idx}] ${s.task}: 종료까지 ${diffMinutes.toFixed(1)}분 (${diff.toFixed(3)}시간)`);
+        
+        // 5분 이하, 0분 초과일 때 알림
+        if(diffMinutes <= 5 && diffMinutes > 0){
+            try{ 
+                new Notification('⏰ 곧 일정 종료', { 
+                    body: `${s.task || '이름 없는 일정'} 가 약 ${Math.round(diffMinutes)}분 후 종료됩니다.`,
+                    icon: '⏰'
+                });
+                console.log('✅ 알림 발송:', s.task);
+            }catch(e){
+                console.error('알림 발송 실패:', e);
             }
-
-            // 알림 권한 요청
-            Notification.requestPermission().then(permission => {
-                console.log("알림 권한 상태:", permission); // 콘솔에 권한 상태를 출력합니다.
-                
-                if (permission === "granted") {
-                    // 권한이 허용된 경우 알림 표시
-                    showDesktopNotification("깃허브 알림 테스트 (Younghee1111)", "✅ 성공! 이 알림은 OS(Windows/Mac) 알림 센터에 나타납니다.");
-                } else if (permission === "denied") {
-                    // 권한이 거부된 경우 사용자에게 안내
-                    alert("⚠️ 알림 권한이 거부되었습니다. 브라우저 주소창 옆의 자물쇠 아이콘을 눌러 '알림'을 '허용'으로 변경해주세요.");
-                } else {
-                    // 권한이 아직 요청되지 않았거나 무시된 경우
-                    alert("알림 권한 요청 팝업을 확인해주세요.");
-                }
-            }).catch(error => {
-                console.error("알림 권한 요청 중 에러 발생:", error);
-                alert("알림 기능을 실행하는 데 문제가 발생했습니다.");
-            });
+            s._notified5 = true;
+            changed = true;
         }
-    </script>
+    });
+    
+    if(changed) saveData();
+}
+
+setInterval(autoCheckByNow, 60000);
+setInterval(autoBackup, 300000);
+setInterval(notifyUpcomingTasks, 60000);
+
+function notifyTest(){
+    if(!('Notification' in window)) { 
+        alert('이 브라우저는 알림을 지원하지 않습니다.'); 
+        return; 
+    }
+    
+    console.log('현재 알림 권한:', Notification.permission);
+    
+    const fireTestNotification = ()=> {
+        try {
+            new Notification('🔔 테스트 알림', { 
+                body: '알림이 정상 동작합니다!',
+                icon: '🔔'
+            });
+            console.log('✅ 테스트 알림 발송 성공');
+        } catch(e) {
+            console.error('❌ 알림 발송 실패:', e);
+            alert('알림 발송 실패: ' + e.message);
+        }
+    };
+    
+    if(Notification.permission === 'granted') { 
+        fireTestNotification();
+    } else if(Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+            console.log('권한 요청 결과:', permission);
+            if(permission === 'granted') {
+                fireTestNotification();
+            } else {
+                alert('알림 권한이 거부되었습니다.');
+            }
+        });
+    } else {
+        alert('알림 권한이 차단되어 있어요.\n브라우저 설정 > 사이트 설정 > 알림에서 권한을 허용해 주세요.');
+    }
+}
+
+loadData();
+
+// 페이지 로드 직후 알림 체크 한 번 실행
+setTimeout(notifyUpcomingTasks, 1000);
+</script>
 </body>
 </html>
