@@ -16,9 +16,15 @@
             margin: 10px;
             font-size: 16px;
             cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
         }
-        #alert-btn { background-color: #4CAF50; color: white; border: none; }
-        #desktop-btn { background-color: #008CBA; color: white; border: none; }
+        #alert-btn { background-color: #4CAF50; color: white; }
+        #desktop-btn { background-color: #008CBA; color: white; }
+        
+        #alert-btn:hover { background-color: #45a049; }
+        #desktop-btn:hover { background-color: #007bb5; }
     </style>
 </head>
 <body>
@@ -39,6 +45,15 @@
             alert(message);
         }
 
+        // 실제로 데스크톱 알림을 생성하는 함수
+        function showDesktopNotification(title, bodyText) {
+            // Notification 객체를 생성하여 OS 알림을 띄웁니다.
+            new Notification(title, {
+                body: bodyText,
+                tag: 'test-tag' 
+            });
+        }
+
         // 2. 데스크톱 알림 띄우기 함수 (Notification API 사용)
         function requestAndShowNotification() {
             // Notification API 지원 여부 확인
@@ -49,28 +64,23 @@
 
             // 알림 권한 요청
             Notification.requestPermission().then(permission => {
+                console.log("알림 권한 상태:", permission); // 콘솔에 권한 상태를 출력합니다.
+                
                 if (permission === "granted") {
                     // 권한이 허용된 경우 알림 표시
-                    showDesktopNotification("깃허브 알림 테스트", "이것은 운영체제 수준에서 뜨는 데스크톱 알림입니다!");
+                    showDesktopNotification("깃허브 알림 테스트 (Younghee1111)", "✅ 성공! 이 알림은 OS(Windows/Mac) 알림 센터에 나타납니다.");
                 } else if (permission === "denied") {
                     // 권한이 거부된 경우 사용자에게 안내
-                    alert("알림 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.");
+                    alert("⚠️ 알림 권한이 거부되었습니다. 브라우저 주소창 옆의 자물쇠 아이콘을 눌러 '알림'을 '허용'으로 변경해주세요.");
                 } else {
                     // 권한이 아직 요청되지 않았거나 무시된 경우
-                    alert("알림 권한 요청을 확인해주세요.");
+                    alert("알림 권한 요청 팝업을 확인해주세요.");
                 }
+            }).catch(error => {
+                console.error("알림 권한 요청 중 에러 발생:", error);
+                alert("알림 기능을 실행하는 데 문제가 발생했습니다.");
             });
         }
-        
-        // 실제로 데스크톱 알림을 생성하는 함수
-        function showDesktopNotification(title, bodyText) {
-            new Notification(title, {
-                body: bodyText,
-                // 옵션: 아이콘 경로를 지정할 수 있습니다. (예: icon: 'icon.png')
-                tag: 'test-tag' // 동일 태그는 기존 알림을 대체합니다.
-            });
-        }
-
     </script>
 </body>
 </html>
