@@ -2,10 +2,13 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>사용자 입력 푸시 알림 테스트</title>
+    <title>사용자 입력 푸시 알림 테스트 - 수정됨</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
         .input-group { margin-bottom: 20px; }
+        /* input-group은 flex-display가 아니라 block-display가 되므로, 
+           내부 요소들을 가운데 정렬하기 위해 text-align: center를 사용합니다. */
+        #test-area { text-align: center; } 
         input[type="text"] { padding: 10px; width: 300px; border: 1px solid #ccc; font-size: 16px; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin-left: 10px; }
         #status { margin-top: 30px; font-weight: bold; color: #333; }
@@ -14,7 +17,6 @@
     </style>
 </head>
 <body>
-
     <h1>사용자 지정 푸시 알림 테스트</h1>
     <p>먼저 알림 권한을 요청하고, 테스트할 메시지를 입력한 후 버튼을 눌러보세요.</p>
 
@@ -30,29 +32,24 @@
     <div id="status"></div>
 
     <script>
-        // 알림 권한 상태를 저장하는 변수
         let notificationPermission = Notification.permission;
         const statusDiv = document.getElementById('status');
+        
+        document.addEventListener('DOMContentLoaded', updateStatus); // DOMContentLoaded에서 updateStatus 실행
 
-        // 페이지 로드 시 상태 업데이트
-        document.addEventListener('DOMContentLoaded', () => {
-            updateStatus();
-        });
-
-        // 1. 알림 권한 요청 함수
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
                 statusDiv.innerHTML = "❌ **오류:** 현재 브라우저는 데스크톱 알림을 지원하지 않습니다.";
                 return;
             }
 
+            // 권한 요청
             Notification.requestPermission().then(permission => {
                 notificationPermission = permission;
                 updateStatus();
             });
         }
 
-        // 2. 사용자 입력 메시지로 알림을 보내는 함수
         function sendCustomNotification() {
             if (notificationPermission !== "granted") {
                 statusDiv.innerHTML = "❌ **오류:** 알림 권한이 '허용' 상태가 아닙니다. 먼저 ①번 버튼을 눌러주세요.";
@@ -68,7 +65,7 @@
             }
 
             const options = {
-                body: message, // 사용자 입력 메시지를 본문으로 사용
+                body: message, 
                 icon: 'https://www.google.com/favicon.ico' 
             };
 
@@ -76,13 +73,12 @@
             
             statusDiv.innerHTML = `✅ **알림 성공!** "${message}" 메시지로 알림이 전송되었습니다. 창을 최소화해 보세요.`;
             
-            // 5초 뒤 알림 자동 닫기 (선택 사항)
+            // 5초 뒤 알림 자동 닫기 
             setTimeout(() => {
                 notification.close();
             }, 5000); 
         }
 
-        // 상태창 및 버튼 표시 업데이트 함수
         function updateStatus() {
             const permissionArea = document.getElementById('permission-area');
             const testArea = document.getElementById('test-area');
@@ -90,5 +86,17 @@
             if (notificationPermission === "granted") {
                 statusDiv.innerHTML = "✅ **알림 권한 허용됨.** 이제 메시지를 입력하고 알림을 띄울 수 있습니다.";
                 permissionArea.style.display = 'none';
-                testArea.style.display = 'flex';
+                testArea.style.display = 'block'; // 💡 'block'으로 수정
+            } else if (notificationPermission === "denied") {
+                statusDiv.innerHTML = "❌ **알림 권한 거부됨.** 브라우저 설정에서 이 페이지의 알림 권한을 '허용'으로 변경해야 합니다.";
+                permissionArea.style.display = 'block';
+                testArea.style.display = 'none';
+            } else { // default or prompt
+                statusDiv.innerHTML = "⚠️ **알림 권한 대기 중.** '① 알림 권한 요청' 버튼을 눌러주세요.";
+                permissionArea.style.display = 'block';
+                testArea.style.display = 'none';
             }
+        }
+    </script>
+</body>
+</html>
