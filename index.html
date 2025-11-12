@@ -45,9 +45,10 @@
 
         .btn-action { margin-left:10px; }
 
-        #scheduleBody tr:hover { background:#fafafa; }
         #scheduleBody tr.dragging { opacity: 0.5; }
         #scheduleBody tr.drag-over { border-top: 3px solid #3498db; }
+        
+        .task-cell:focus-within { background:#fafafa !important; }
         
         tr.completed-row .task-cell { background:#f5f5f5 !important; }
         tr.completed-row .task-input { color:#7f8c8d; }
@@ -280,7 +281,7 @@ function renderTable(){
         
         const task = document.createElement('td'); 
         task.className = 'task-cell';
-        task.innerHTML = `<input class='task-input' type='text' value='${s.task || ''}' onchange='updateTask(${i}, this.value)'>`;
+        task.innerHTML = `<input class='task-input' type='text' value='${s.task || ''}' onchange='updateTask(${i}, this.value)' onkeydown='handleTaskKeyDown(event, ${i})'>`;
         tr.appendChild(task);
         
         const c = document.createElement('td'); 
@@ -333,6 +334,29 @@ function handleDragEnd(e){
 function updateDuration(i, v){ schedules[i].duration = parseFloat(v) || 0.5; updateAllTimes(); }
 function updateTask(i, v){ schedules[i].task = v; saveData(); renderTable(); }
 function toggleCompleted(i, ch){ schedules[i].completed = !!ch; saveData(); renderTable(); }
+
+function handleTaskKeyDown(event, currentIndex){
+    if(event.key === 'ArrowDown'){
+        event.preventDefault();
+        const nextIndex = currentIndex + 1;
+        if(nextIndex < schedules.length){
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('.task-input');
+                if(inputs[nextIndex]) inputs[nextIndex].focus();
+            }, 0);
+        }
+    } else if(event.key === 'ArrowUp'){
+        event.preventDefault();
+        const prevIndex = currentIndex - 1;
+        if(prevIndex >= 0){
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('.task-input');
+                if(inputs[prevIndex]) inputs[prevIndex].focus();
+            }, 0);
+        }
+    }
+}
+
 function addRow(){ schedules.push({duration: 1, task: '', completed: false}); updateAllTimes(); }
 
 function deleteRow(i){ 
