@@ -2,84 +2,93 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>20초 간격 푸시 알림 테스트</title>
+    <title>사용자 입력 푸시 알림 테스트</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        #status { margin-top: 20px; font-weight: bold; }
+        .input-group { margin-bottom: 20px; }
+        input[type="text"] { padding: 10px; width: 300px; border: 1px solid #ccc; font-size: 16px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin-left: 10px; }
+        #status { margin-top: 30px; font-weight: bold; color: #333; }
+        .permission-btn { background-color: #4CAF50; color: white; border: none; }
+        .send-btn { background-color: #008CBA; color: white; border: none; }
     </style>
 </head>
 <body>
 
-    <h1>데스크톱 푸시 알림 테스트</h1>
-    <p>아래 버튼을 클릭하여 알림 권한을 요청하고, 테스트를 시작하세요.</p>
-    <button onclick="startNotificationTest()">테스트 시작 (20초마다 알림)</button>
+    <h1>사용자 지정 푸시 알림 테스트</h1>
+    <p>먼저 알림 권한을 요청하고, 테스트할 메시지를 입력한 후 버튼을 눌러보세요.</p>
+
+    <div id="permission-area">
+        <button class="permission-btn" onclick="requestNotificationPermission()">① 알림 권한 요청</button>
+    </div>
+
+    <div class="input-group" style="display: none;" id="test-area">
+        <input type="text" id="notificationMessage" placeholder="여기에 테스트 메시지를 입력하세요" value="창 최소화해도 잘 보이죠?">
+        <button class="send-btn" onclick="sendCustomNotification()">② 알림 띄우기 (즉시)</button>
+    </div>
+    
     <div id="status"></div>
 
     <script>
-        // 알림 권한을 요청하고 20초 간격으로 알림을 보내는 함수
-        function startNotificationTest() {
-            const statusDiv = document.getElementById('status');
-            
-            // 1. 브라우저가 알림 API를 지원하는지 확인
+        // 알림 권한 상태를 저장하는 변수
+        let notificationPermission = Notification.permission;
+        const statusDiv = document.getElementById('status');
+
+        // 페이지 로드 시 상태 업데이트
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus();
+        });
+
+        // 1. 알림 권한 요청 함수
+        function requestNotificationPermission() {
             if (!("Notification" in window)) {
                 statusDiv.innerHTML = "❌ **오류:** 현재 브라우저는 데스크톱 알림을 지원하지 않습니다.";
                 return;
             }
 
-            // 2. 알림 권한 요청
             Notification.requestPermission().then(permission => {
-                
-                if (permission === "granted") {
-                    // 권한 허용
-                    statusDiv.innerHTML = "✅ **알림 권한 허용됨.** 20초마다 알림이 전송됩니다. 창을 최소화해 보세요.";
-                    
-                    // 20초(20000ms)마다 알림을 생성
-                    const intervalId = setInterval(() => {
-                        showNotification();
-                    }, 20000); // 20000 밀리초 = 20초
-
-                    // (선택 사항) 페이지를 닫으면 알림 반복을 멈추도록 설정
-                    window.onbeforeunload = function() {
-                        clearInterval(intervalId);
-                    };
-
-                } else if (permission === "denied") {
-                    // 권한 거부
-                    statusDiv.innerHTML = "❌ **알림 권한 거부됨.** 브라우저 설정에서 이 페이지의 알림 권한을 허용해야 합니다.";
-                } else {
-                    // 권한 무시 (default)
-                    statusDiv.innerHTML = "⚠️ **알림 권한이 허용되지 않았습니다.** 다시 시도해주세요.";
-                }
+                notificationPermission = permission;
+                updateStatus();
             });
         }
 
-        // 실제 알림을 생성하는 함수
-        function showNotification() {
-            // 알림 메시지 정의
-            const title = "🔔 20초 간격 테스트 알림";
+        // 2. 사용자 입력 메시지로 알림을 보내는 함수
+        function sendCustomNotification() {
+            if (notificationPermission !== "granted") {
+                statusDiv.innerHTML = "❌ **오류:** 알림 권한이 '허용' 상태가 아닙니다. 먼저 ①번 버튼을 눌러주세요.";
+                return;
+            }
+
+            const message = document.getElementById('notificationMessage').value;
+            const title = "🔔 사용자 지정 알림";
+            
+            if (!message) {
+                 statusDiv.innerHTML = "⚠️ **경고:** 알림 메시지를 입력해주세요.";
+                return;
+            }
+
             const options = {
-                body: "알람 메시지(푸시)가 정상적으로 표시됩니다.", // 알림 본문
-                icon: 'https://www.google.com/favicon.ico' // 알림에 표시할 아이콘 (선택 사항)
+                body: message, // 사용자 입력 메시지를 본문으로 사용
+                icon: 'https://www.google.com/favicon.ico' 
             };
 
-            // 새 알림 생성
             const notification = new Notification(title, options);
             
-            // (선택 사항) 알림 클릭 시 동작 정의
-            notification.onclick = function(event) {
-                event.preventDefault(); // 기본 동작 방지
-                window.focus(); // 브라우저 창을 활성화
-                console.log('알림이 클릭되었습니다.');
-                // 알림을 띄운 탭으로 이동하고 싶다면 여기에 추가 코드를 작성할 수 있습니다.
-            };
-
-            // (선택 사항) 생성 후 5초 뒤 알림 자동 닫기
+            statusDiv.innerHTML = `✅ **알림 성공!** "${message}" 메시지로 알림이 전송되었습니다. 창을 최소화해 보세요.`;
+            
+            // 5초 뒤 알림 자동 닫기 (선택 사항)
             setTimeout(() => {
                 notification.close();
             }, 5000); 
         }
-    </script>
 
-</body>
-</html>
+        // 상태창 및 버튼 표시 업데이트 함수
+        function updateStatus() {
+            const permissionArea = document.getElementById('permission-area');
+            const testArea = document.getElementById('test-area');
+
+            if (notificationPermission === "granted") {
+                statusDiv.innerHTML = "✅ **알림 권한 허용됨.** 이제 메시지를 입력하고 알림을 띄울 수 있습니다.";
+                permissionArea.style.display = 'none';
+                testArea.style.display = 'flex';
+            }
