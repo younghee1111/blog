@@ -519,13 +519,22 @@ function checkAndNotify(){
     schedules.forEach((s, i) => {
         if(s.completed) return;
         
-        const alarmTime = s.endNum - (alarmSettings.minutesBefore / 60);
-        const taskKey = `${s.start}-${s.end}-${s.task}`;
+        // 시작 시간 알림
+        const startTaskKey = `start-${s.start}-${s.end}-${s.task}`;
+        if(nowH >= s.startNum && nowH < s.startNum + 0.02 && !notifiedTasks.has(startTaskKey)){
+            notifiedTasks.add(startTaskKey);
+            showStartNotification(s, i);
+            console.log(`시작 알람 발송: ${s.task}, 시작시간: ${s.start}, 현재시간: ${formatTime(nowH)}`);
+        }
         
-        if(nowH >= alarmTime && nowH < s.endNum && !notifiedTasks.has(taskKey)){
-            notifiedTasks.add(taskKey);
-            showNotification(s, i);
-            console.log(`알람 발송: ${s.task}, 종료시간: ${s.end}, 알람시간: ${formatTime(alarmTime)}, 현재시간: ${formatTime(nowH)}`);
+        // 종료 전 알림
+        const alarmTime = s.endNum - (alarmSettings.minutesBefore / 60);
+        const endTaskKey = `end-${s.start}-${s.end}-${s.task}`;
+        
+        if(nowH >= alarmTime && nowH < s.endNum && !notifiedTasks.has(endTaskKey)){
+            notifiedTasks.add(endTaskKey);
+            showEndNotification(s, i);
+            console.log(`종료 알람 발송: ${s.task}, 종료시간: ${s.end}, 알람시간: ${formatTime(alarmTime)}, 현재시간: ${formatTime(nowH)}`);
         }
     });
 }
