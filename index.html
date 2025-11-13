@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>일정관리 시스템</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>⏰</text></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         html { overflow-y: scroll; }
@@ -511,12 +512,15 @@ function checkAndNotify(){
     schedules.forEach((s, i) => {
         if(s.completed) return;
         
+        // 종료 시간에서 설정한 분(minutesBefore)을 뺀 시간
         const alarmTime = s.endNum - (alarmSettings.minutesBefore / 60);
         const taskKey = `${s.start}-${s.end}-${s.task}`;
         
+        // 현재 시간이 알람 시간 이후이고, 종료 시간 이전이며, 아직 알림을 보내지 않았다면
         if(nowH >= alarmTime && nowH < s.endNum && !notifiedTasks.has(taskKey)){
             notifiedTasks.add(taskKey);
             showNotification(s, i);
+            console.log(`알람 발송: ${s.task}, 종료시간: ${s.end}, 알람시간: ${formatTime(alarmTime)}, 현재시간: ${formatTime(nowH)}`);
         }
     });
 }
@@ -525,8 +529,8 @@ function showNotification(currentTask, currentIndex){
     const nextTask = schedules[currentIndex + 1];
     const nextTaskText = nextTask ? (nextTask.task || '할일 없음') : '마지막 일정';
     
-    const notification = new Notification('📅 알림', {
-        body: `종료 ${alarmSettings.minutesBefore}분 전\n\n ${nextTaskText}`,
+    const notification = new Notification('📅 일정 알림', {
+        body: `종료 ${alarmSettings.minutesBefore}분 전\n\n다음 할일: ${nextTaskText}`,
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
         tag: 'schedule-alarm',
         requireInteraction: false,
@@ -551,7 +555,11 @@ function saveAlarmSettings(){
     alarmSettings.minutesBefore = parseInt(document.getElementById('alarmMinutes').value) || 5;
     alarmSettings.enabled = document.getElementById('alarmEnabled').checked;
     saveData();
-    if(alarmSettings.enabled){ notifiedTasks.clear(); startAlarmCheck(); }
+    if(alarmSettings.enabled){ 
+        notifiedTasks.clear(); 
+        startAlarmCheck(); 
+        alert('알람 설정이 저장되었습니다!');
+    }
 }
 
 async function testAlarm(){
