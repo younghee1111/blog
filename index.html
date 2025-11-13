@@ -8,8 +8,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         html { overflow-y: scroll; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        
+        .main-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; min-height: 100vh; padding: 20px; max-width: 1400px; margin: 0 auto; }
+        
+        .main-area { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        .sidebar-area { display: flex; flex-direction: column; gap: 15px; }
+        .sidebar-box { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .sidebar-header { font-weight: bold; color: #2c3e50; margin-bottom: 10px; font-size: 14px; }
         h1 { color: #2c3e50; margin: 20px 0; font-size: 20px; text-align: center; }
 
         button { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
@@ -82,14 +89,19 @@
         .alarm-toggle input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
         .alarm-info { margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 13px; color: #1565c0; line-height: 1.6; }
 
-        .content-wrapper { display: flex; gap: 20px; margin-top: 15px; }
-        .schedule-section { flex: 1; min-width: 0; }
-        .memo-section { display: none; }
+        .memo-textarea { width: 100%; min-height: 150px; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; font-size: 13px; font-family: inherit; resize: vertical; }
+        .memo-save-btn { width: 100%; margin-top: 8px; padding: 8px; font-size: 12px; }
+        
+        .stats-content { font-size: 13px; color: #555; line-height: 1.8; }
+        .stats-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+        .stats-item:last-child { border-bottom: none; }
+        .stats-label { color: #7f8c8d; }
+        .stats-value { font-weight: bold; color: #2c3e50; }
 
         @media (max-width: 1024px){
-            .content-wrapper { flex-direction: column; }
-            .memo-section { width: 100%; }
-            .memo-textarea { min-height: 200px; }
+            .main-layout { grid-template-columns: 1fr; }
+            .sidebar-area { flex-direction: row; flex-wrap: wrap; }
+            .sidebar-box { flex: 1; min-width: 250px; }
         }
 
         @media (max-width: 720px){ 
@@ -101,40 +113,79 @@
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>📅 일정관리 시스템</h1>
+<div class="main-layout">
+    <!-- 왼쪽: 메인 영역 (업무) -->
+    <div class="main-area">
+        <h1>📅 일정관리 시스템</h1>
 
-    <div class="row space">
-        <div class="row">
-            <button class="btn-soft-pink" onclick="openTemplateModal()">📋 템플릿</button>
-            <button class="btn-soft-blue" onclick="openAlarmModal()">🔔 알람설정</button>
+        <div class="row space">
+            <div class="row">
+                <button class="btn-soft-pink" onclick="openTemplateModal()">📋 템플릿</button>
+                <button class="btn-soft-blue" onclick="openAlarmModal()">🔔 알람설정</button>
+                <button class="btn-soft-violet" onclick="openAIScheduleModal()">🤖 AI 스케줄링</button>
+            </div>
+            <div class="spacer"></div>
+            <div class="row">
+                <button class="btn-soft-violet" onclick="undoDelete()">↩️ 이전</button>
+                <button class="btn-soft-green" onclick="copyWorkContent()">📋 업무내용</button>
+            </div>
         </div>
-        <div class="spacer"></div>
-        <div class="row">
-            <button class="btn-soft-violet" onclick="undoDelete()">↩️ 이전</button>
-            <button class="btn-soft-green" onclick="copyWorkContent()">📋 업무내용</button>
+
+        <table id="scheduleTable">
+            <thead>
+                <tr>
+                    <th style="width:70px;">시간 단위</th>
+                    <th style="width:120px;">시간</th>
+                    <th>할일</th>
+                </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+        </table>
+
+        <div class="summary-bar">
+            <span><span class="label">남은 시간:</span> <span class="value" id="remainingTime">0시간(0개)</span></span>
+            <span style="color:#ddd;">|</span>
+            <span><span class="label">총 업무:</span> <span class="value" id="workHours">0시간(0개)</span></span>
         </div>
     </div>
 
-    <div class="content-wrapper">
-        <div class="schedule-section">
-            <table id="scheduleTable">
-                <thead>
-                    <tr>
-                        <th style="width:70px;">시간 단위</th>
-                        <th style="width:120px;">시간</th>
-                        <th>할일</th>
-                    </tr>
-                </thead>
-                <tbody id="scheduleBody"></tbody>
-            </table>
+    <!-- 오른쪽: 사이드바 (메모) -->
+    <div class="sidebar-area">
+        <div class="sidebar-box">
+            <div class="sidebar-header">📝 메모</div>
+            <textarea id="sidebarMemo" class="memo-textarea" placeholder="자유롭게 메모를 작성하세요..."></textarea>
+            <button class="btn-soft-green memo-save-btn" onclick="saveSidebarMemo()">💾 저장</button>
         </div>
-    </div>
 
-    <div class="summary-bar">
-        <span><span class="label">현재 일정:</span> <span class="value" id="remainingTime">없음</span></span>
-        <span style="color:#ddd;">|</span>
-        <span><span class="label">완료된 업무:</span> <span class="value" id="workHours">0시간</span></span>
+        <div class="sidebar-box">
+            <div class="sidebar-header">📊 오늘의 통계</div>
+            <div class="stats-content" id="statsContent">
+                <div class="stats-item">
+                    <span class="stats-label">전체 일정</span>
+                    <span class="stats-value">0개</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">완료율</span>
+                    <span class="stats-value">0%</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">진행 시간</span>
+                    <span class="stats-value">0시간</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-box">
+            <div class="sidebar-header">💡 빠른 팁</div>
+            <div style="font-size: 12px; color: #555; line-height: 1.6;">
+                <strong>⌨️ 키보드 단축키</strong><br>
+                • Enter: 다음 할일<br>
+                • Ctrl+Enter: 행 추가<br>
+                • Ctrl+D: 행 복사<br>
+                • Ctrl+Backspace: 행 삭제<br>
+                • ↑↓: 위/아래 이동
+            </div>
+        </div>
     </div>
 </div>
 
@@ -204,6 +255,37 @@
     </div>
 </div>
 
+<div id="aiScheduleModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>🤖 AI 스케줄링</h2>
+            <span class="modal-close" onclick="closeAIScheduleModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>할 일 목록 입력 (한 줄에 하나씩)</label>
+                <textarea id="aiTaskInput" placeholder="예:&#10;보고서 작성&#10;팀 회의&#10;이메일 처리&#10;점심식사&#10;프로젝트 기획" style="min-height: 150px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>총 작업 시간 (시간)</label>
+                <input type="number" id="aiTotalHours" value="8" min="1" max="24" style="width:100px;">
+                <span style="margin-left:8px; color:#7f8c8d;">시간</span>
+            </div>
+            <div style="padding:10px; background:#e3f2fd; border-radius:6px; font-size:12px; color:#1565c0; margin-bottom:15px;">
+                💡 AI가 각 작업에 적절한 시간을 자동으로 배분합니다.<br>
+                • 회의, 점심, 저녁은 자동으로 인식됩니다.<br>
+                • 작업 복잡도를 분석하여 시간을 할당합니다.
+            </div>
+            <button class="btn-soft-green" onclick="generateAISchedule()" style="width:100%; padding:12px; font-size:14px;">
+                ✨ AI 스케줄 생성
+            </button>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-soft-orange" onclick="closeAIScheduleModal()">취소</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let schedules = [];
 let templates = [];
@@ -212,12 +294,14 @@ let alarmSettings = { enabled: false, minutesBefore: 5 };
 let notifiedTasks = new Set();
 let alarmCheckInterval = null;
 let deletedHistory = [];
+let sidebarMemoContent = '';
 const START_TIME = "9:00";
 
 function loadData(){
     const saved = localStorage.getItem('scheduleData');
     const savedTemplates = localStorage.getItem('templates');
     const savedAlarmSettings = localStorage.getItem('alarmSettings');
+    const savedSidebarMemo = localStorage.getItem('sidebarMemo');
     
     if(saved){ schedules = JSON.parse(saved); } 
     else { schedules = [{duration:1, task:'', completed:false}]; }
@@ -230,8 +314,14 @@ function loadData(){
         document.getElementById('alarmMinutes').value = alarmSettings.minutesBefore;
     }
     
+    if(savedSidebarMemo){
+        sidebarMemoContent = savedSidebarMemo;
+        document.getElementById('sidebarMemo').value = sidebarMemoContent;
+    }
+    
     ensureDailyReset();
     renderTable();
+    updateStats();
     initAlarmSystem();
 }
 
@@ -267,6 +357,7 @@ function calculateTimes(){
 function renderTable(){
     calculateTimes();
     updateSummary();
+    updateStats();
     const tbody = document.getElementById('scheduleBody');
     tbody.innerHTML = '';
     const nowH = nowInHours();
@@ -532,6 +623,41 @@ function formatHours(totalHours){
     }
 }
 
+function saveSidebarMemo(){
+    sidebarMemoContent = document.getElementById('sidebarMemo').value;
+    localStorage.setItem('sidebarMemo', sidebarMemoContent);
+}
+
+function updateStats(){
+    const nowH = nowInHours();
+    let totalCount = schedules.length;
+    let completedCount = schedules.filter(s => s.completed).length;
+    let totalHours = 0;
+    
+    schedules.forEach(s => {
+        if(s.completed){
+            totalHours += s.duration;
+        }
+    });
+    
+    const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    
+    document.getElementById('statsContent').innerHTML = `
+        <div class="stats-item">
+            <span class="stats-label">전체 일정</span>
+            <span class="stats-value">${totalCount}개</span>
+        </div>
+        <div class="stats-item">
+            <span class="stats-label">완료율</span>
+            <span class="stats-value">${completionRate}%</span>
+        </div>
+        <div class="stats-item">
+            <span class="stats-label">진행 시간</span>
+            <span class="stats-value">${formatHours(totalHours)}</span>
+        </div>
+    `;
+}
+
 function ensureDailyReset(){
     const today = new Date().toDateString();
     const last = localStorage.getItem('lastReset');
@@ -595,6 +721,1007 @@ function loadTemplate(index){
 }
 
 function deleteTemplate(index){ if(confirm('이 템플릿을 삭제하시겠습니까?')){ templates.splice(index, 1); saveData(); renderTemplateList(); } }
+
+function openAIScheduleModal(){ document.getElementById('aiScheduleModal').classList.add('show'); }
+function closeAIScheduleModal(){ document.getElementById('aiScheduleModal').classList.remove('show'); }
+
+async function generateAISchedule(){
+    const taskInput = document.getElementById('aiTaskInput').value.trim();
+    const totalHours = parseFloat(document.getElementById('aiTotalHours').value) || 8;
+    
+    if(!taskInput){
+        alert('할 일을 입력해주세요.');
+        return;
+    }
+    
+    const tasks = taskInput.split('\n').filter(t => t.trim()).map(t => t.trim());
+    
+    if(tasks.length === 0){
+        alert('최소 1개 이상의 할 일을 입력해주세요.');
+        return;
+    }
+    
+    try {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 1000,
+                messages: [
+                    {
+                        role: "user",
+                        content: `다음 작업 목록을 총 ${totalHours}시간에 맞춰 일정을 배분해주세요.
+
+작업 목록:
+${tasks.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+
+규칙:
+- 점심식사/점심: 1시간
+- 저녁식사/저녁: 1시간
+- 회의: 1시간
+- 기타 작업: 작업 복잡도에 따라 0.5~3시간 사이로 배분
+- 총 시간은 정확히 ${totalHours}시간이 되어야 함
+- 모든 작업을 포함해야 함
+
+JSON 형식으로만 답변하세요 (다른 설명 없이):
+[
+  {"task": "작업명", "duration": 시간(숫자)},
+  ...
+]`
+                    }
+                ],
+            })
+        });
+
+        const data = await response.json();
+        let content = data.content[0].text.trim();
+        
+        // JSON 추출
+        content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        const aiSchedule = JSON.parse(content);
+        
+        // 현재 스케줄 교체
+        schedules = aiSchedule.map(item => ({
+            duration: item.duration,
+            task: item.task,
+            completed: false
+        }));
+        
+        updateAllTimes();
+        closeAIScheduleModal();
+        alert('AI 스케줄이 생성되었습니다!');
+        
+    } catch(err) {
+        console.error('AI 스케줄링 오류:', err);
+        alert('AI 스케줄링 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+}
+
+async function initAlarmSystem(){
+    if('Notification' in window && Notification.permission === 'default'){
+        await Notification.requestPermission();
+    }
+    if(alarmSettings.enabled) startAlarmCheck();
+}
+
+function startAlarmCheck(){
+    if(alarmCheckInterval) clearInterval(alarmCheckInterval);
+    alarmCheckInterval = setInterval(checkAndNotify, 10000);
+    checkAndNotify();
+}
+
+function stopAlarmCheck(){ if(alarmCheckInterval){ clearInterval(alarmCheckInterval); alarmCheckInterval = null; } }
+
+function checkAndNotify(){
+    if(!alarmSettings.enabled || Notification.permission !== 'granted') return;
+    
+    const nowH = nowInHours();
+    calculateTimes();
+    
+    schedules.forEach((s, i) => {
+        if(s.completed) return;
+        
+        // 시작 시간 알림
+        const startTaskKey = `start-${s.start}-${s.end}-${s.task}`;
+        if(nowH >= s.startNum && nowH < s.startNum + 0.02 && !notifiedTasks.has(startTaskKey)){
+            notifiedTasks.add(startTaskKey);
+            showStartNotification(s, i);
+        }
+        
+        // 종료 전 알림
+        const alarmTime = s.endNum - (alarmSettings.minutesBefore / 60);
+        const endTaskKey = `end-${s.start}-${s.end}-${s.task}`;
+        
+        if(nowH >= alarmTime && nowH < s.endNum && !notifiedTasks.has(endTaskKey)){
+            notifiedTasks.add(endTaskKey);
+            showEndNotification(s, i);
+        }
+    });
+}
+
+function showStartNotification(currentTask, currentIndex){
+    const notification = new Notification('🎯 할일 시작', {
+        body: `[현재 할일]\n${currentTask.task || '할일 없음'}`,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🎯</text></svg>',
+        tag: 'schedule-start-' + Date.now(),
+        requireInteraction: true,
+        silent: false
+    });
+    
+    notification.onclick = function(){ window.focus(); this.close(); };
+}
+
+function showEndNotification(currentTask, currentIndex){
+    const nextTask = schedules[currentIndex + 1];
+    const nextTaskText = nextTask ? (nextTask.task || '할일 없음') : '마지막 일정';
+    
+    const notification = new Notification(`📅 ${alarmSettings.minutesBefore}분 전 종료`, {
+        body: `[다음 할일]\n${nextTaskText}`,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
+        tag: 'schedule-end-' + Date.now(),
+        requireInteraction: true,
+        silent: false
+    });
+    
+    notification.onclick = function(){ window.focus(); this.close(); };
+}
+
+function openAlarmModal(){ document.getElementById('alarmModal').classList.add('show'); }
+function closeAlarmModal(){ document.getElementById('alarmModal').classList.remove('show'); }
+
+function toggleAlarm(enabled){
+    alarmSettings.enabled = enabled;
+    saveAlarmSettings();
+    if(enabled) initAlarmSystem();
+    else stopAlarmCheck();
+}
+
+function saveAlarmSettings(){
+    alarmSettings.minutesBefore = parseInt(document.getElementById('alarmMinutes').value) || 5;
+    alarmSettings.enabled = document.getElementById('alarmEnabled').checked;
+    saveData();
+    if(alarmSettings.enabled){ 
+        notifiedTasks.clear(); 
+        startAlarmCheck(); 
+        alert('알람 설정이 저장되었습니다!');
+    }
+}
+
+async function testAlarm(){
+    if(Notification.permission !== 'granted'){
+        const permission = await Notification.requestPermission();
+        if(permission !== 'granted'){ alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.'); return; }
+    }
+    
+    const notification = new Notification('🔔 알람 테스트', {
+        body: `종료 ${alarmSettings.minutesBefore}분 전\n\n다음 할일: 테스트 할일`,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🔔</text></svg>',
+        tag: 'test-alarm-' + Date.now(),
+        requireInteraction: true
+    });
+    
+    notification.onclick = function(){ window.focus(); this.close(); };
+}
+
+setInterval(() => {
+    const nowH = nowInHours();
+    calculateTimes();
+    schedules.forEach(s => {
+        if(nowH >= s.startNum && nowH < s.endNum){
+            renderTable();
+        }
+    });
+}, 60000);
+
+loadData();
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>일정관리 시스템</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>⏰</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        html { overflow-y: scroll; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        
+        .main-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; min-height: 100vh; padding: 20px; max-width: 1400px; margin: 0 auto; }
+        
+        .main-area { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        .sidebar-area { display: flex; flex-direction: column; gap: 15px; }
+        .sidebar-box { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .sidebar-header { font-weight: bold; color: #2c3e50; margin-bottom: 10px; font-size: 14px; }
+        h1 { color: #2c3e50; margin: 20px 0; font-size: 20px; text-align: center; }
+
+        button { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
+        button:hover { filter: brightness(0.95); }
+        .btn-soft-green { background:#E5F7E9; color:#1e5e2f; }
+        .btn-soft-violet { background:#F0E9FF; color:#5a2e98; }
+        .btn-soft-orange { background:#FFE8D6; color:#8a4b13; }
+        .btn-soft-blue { background:#E6F0FF; color:#1b4fa3; }
+        .btn-danger { background:#FDE2E1; color:#8B1E1A; }
+        .btn-soft-pink { background:#FFE6F0; color:#8B1E5A; }
+
+        .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .row.space { margin-bottom: 15px; }
+        .row .spacer { margin-left:auto; }
+
+        .summary-bar { background:#E8F5E9; padding:12px 15px; border-radius:8px; margin-top:15px; display:flex; justify-content:center; align-items:center; gap:30px; }
+        .summary-bar span { font-size:14px; color:#2c3e50; }
+        .summary-bar .label { font-weight:bold; }
+        .summary-bar .value { font-weight:bold; color:#1e5e2f; }
+
+        table { width:100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 15px; }
+        th { background: #34495e; color: white; }
+
+        .duration-cell { background: #ecf0f1; width: 70px; text-align:center; }
+        .duration-cell input { text-align:center; width:100%; background: transparent; border: none; outline: none; font-size: 15px; }
+        .time-cell { background: #ecf0f1; }
+        .task-cell { background: white; text-align:left; }
+
+        .task-input { background: transparent; border: none; outline: none; width: 100%; color:#2c3e50; font-size:15px; padding:8px; }
+
+        #scheduleBody tr.dragging { opacity: 0.5; }
+        #scheduleBody tr.drag-over { border-top: 3px solid #3498db; }
+        
+        .task-cell:focus-within { background:#fafafa !important; }
+        
+        tr.completed-row .task-cell { background:#f5f5f5 !important; }
+        tr.completed-row .task-input { color:#7f8c8d; }
+        tr.completed-row .duration-cell { background:#e8e8e8 !important; }
+        tr.completed-row .time-cell { background:#e8e8e8 !important; color:#7f8c8d; }
+        
+        tr.active .task-cell { background:#FFF9E6 !important; }
+        tr.active .time-cell { background:#FFF7E6 !important; font-weight:700; }
+        
+        tr.meal-row .task-cell { background:#F3E8FF !important; }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; color: #2c3e50; font-size: 18px; }
+        .modal-close { cursor: pointer; font-size: 28px; color: #95a5a6; line-height: 1; }
+        .modal-close:hover { color: #34495e; }
+        .modal-body { margin-bottom: 20px; }
+        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
+
+        .template-item { padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+        .template-item:hover { background: #f8f9fa; border-color: #3498db; }
+        .template-name { font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
+        .template-info { font-size: 12px; color: #7f8c8d; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; font-size: 14px; }
+        .form-group input[type="number"] { width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .form-group input[type="text"], .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .form-group textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+        
+        .alarm-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .alarm-toggle { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+        .alarm-toggle input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .alarm-info { margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 13px; color: #1565c0; line-height: 1.6; }
+
+        .memo-textarea { width: 100%; min-height: 150px; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; font-size: 13px; font-family: inherit; resize: vertical; }
+        .memo-save-btn { width: 100%; margin-top: 8px; padding: 8px; font-size: 12px; }
+        
+        .stats-content { font-size: 13px; color: #555; line-height: 1.8; }
+        .stats-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+        .stats-item:last-child { border-bottom: none; }
+        .stats-label { color: #7f8c8d; }
+        .stats-value { font-weight: bold; color: #2c3e50; }
+
+        @media (max-width: 1024px){
+            .main-layout { grid-template-columns: 1fr; }
+            .sidebar-area { flex-direction: row; flex-wrap: wrap; }
+            .sidebar-box { flex: 1; min-width: 250px; }
+        }
+
+        @media (max-width: 720px){ 
+            th, td { padding:6px; font-size:14px; } 
+            button { padding: 6px 10px; font-size: 11px; }
+            .modal-content { padding: 20px; }
+            .summary-bar { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+<div class="main-layout">
+    <!-- 왼쪽: 메인 영역 (업무) -->
+    <div class="main-area">
+        <h1>📅 일정관리 시스템</h1>
+
+        <div class="row space">
+            <div class="row">
+                <button class="btn-soft-pink" onclick="openTemplateModal()">📋 템플릿</button>
+                <button class="btn-soft-blue" onclick="openAlarmModal()">🔔 알람설정</button>
+                <button class="btn-soft-violet" onclick="openAIScheduleModal()">🤖 AI 스케줄링</button>
+            </div>
+            <div class="spacer"></div>
+            <div class="row">
+                <button class="btn-soft-violet" onclick="undoDelete()">↩️ 이전</button>
+                <button class="btn-soft-green" onclick="copyWorkContent()">📋 업무내용</button>
+            </div>
+        </div>
+
+        <table id="scheduleTable">
+            <thead>
+                <tr>
+                    <th style="width:70px;">시간 단위</th>
+                    <th style="width:120px;">시간</th>
+                    <th>할일</th>
+                </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+        </table>
+
+        <div class="summary-bar">
+            <span><span class="label">남은 시간:</span> <span class="value" id="remainingTime">0시간(0개)</span></span>
+            <span style="color:#ddd;">|</span>
+            <span><span class="label">총 업무:</span> <span class="value" id="workHours">0시간(0개)</span></span>
+        </div>
+    </div>
+
+    <!-- 오른쪽: 사이드바 (메모) -->
+    <div class="sidebar-area">
+        <div class="sidebar-box">
+            <div class="sidebar-header">📝 메모</div>
+            <textarea id="sidebarMemo" class="memo-textarea" placeholder="자유롭게 메모를 작성하세요..."></textarea>
+            <button class="btn-soft-green memo-save-btn" onclick="saveSidebarMemo()">💾 저장</button>
+        </div>
+
+        <div class="sidebar-box">
+            <div class="sidebar-header">📊 오늘의 통계</div>
+            <div class="stats-content" id="statsContent">
+                <div class="stats-item">
+                    <span class="stats-label">전체 일정</span>
+                    <span class="stats-value">0개</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">완료율</span>
+                    <span class="stats-value">0%</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">진행 시간</span>
+                    <span class="stats-value">0시간</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-box">
+            <div class="sidebar-header">💡 빠른 팁</div>
+            <div style="font-size: 12px; color: #555; line-height: 1.6;">
+                <strong>⌨️ 키보드 단축키</strong><br>
+                • Enter: 다음 할일<br>
+                • Ctrl+Enter: 행 추가<br>
+                • Ctrl+D: 행 복사<br>
+                • Ctrl+Backspace: 행 삭제<br>
+                • ↑↓: 위/아래 이동
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="templateModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📋 템플릿 관리</h2>
+            <span class="modal-close" onclick="closeTemplateModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <button class="btn-soft-green" onclick="openSaveTemplateModal()" style="width:100%; margin-bottom:20px;">💾 현재 일정을 템플릿으로 저장</button>
+            <div id="templateList"></div>
+        </div>
+    </div>
+</div>
+
+<div id="saveTemplateModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>💾 템플릿 저장</h2>
+            <span class="modal-close" onclick="closeSaveTemplateModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>템플릿 이름</label>
+                <input type="text" id="templateName" placeholder="예: 평일 루틴" />
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-soft-orange" onclick="closeSaveTemplateModal()">취소</button>
+            <button class="btn-soft-green" onclick="saveTemplate()">저장</button>
+        </div>
+    </div>
+</div>
+
+<div id="alarmModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>🔔 알람 설정</h2>
+            <span class="modal-close" onclick="closeAlarmModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="alarm-section">
+                <label class="alarm-toggle">
+                    <input type="checkbox" id="alarmEnabled" onchange="toggleAlarm(this.checked)">
+                    <span style="font-weight:600;">알람 활성화</span>
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>종료 몇 분 전에 알림</label>
+                <input type="number" id="alarmMinutes" value="5" min="1" max="60" onchange="saveAlarmSettings()">
+                <span style="margin-left:8px; color:#7f8c8d;">분</span>
+            </div>
+
+            <button class="btn-soft-blue" onclick="testAlarm()" style="width:100%; padding:12px; font-size:14px;">🔔 알람 테스트</button>
+            
+            <div class="alarm-info">
+                💡 알람을 받으려면 브라우저 알림 권한이 필요합니다.<br>
+                • 시작 알림: 각 할일 시작 시점<br>
+                • 종료 알림: 설정한 시간 전
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-soft-green" onclick="closeAlarmModal()">확인</button>
+        </div>
+    </div>
+</div>
+
+<div id="aiScheduleModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>🤖 AI 스케줄링</h2>
+            <span class="modal-close" onclick="closeAIScheduleModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>할 일 목록 입력 (한 줄에 하나씩)</label>
+                <textarea id="aiTaskInput" placeholder="예:&#10;보고서 작성&#10;팀 회의&#10;이메일 처리&#10;점심식사&#10;프로젝트 기획" style="min-height: 150px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>총 작업 시간 (시간)</label>
+                <input type="number" id="aiTotalHours" value="8" min="1" max="24" style="width:100px;">
+                <span style="margin-left:8px; color:#7f8c8d;">시간</span>
+            </div>
+            <div style="padding:10px; background:#e3f2fd; border-radius:6px; font-size:12px; color:#1565c0; margin-bottom:15px;">
+                💡 AI가 각 작업에 적절한 시간을 자동으로 배분합니다.<br>
+                • 회의, 점심, 저녁은 자동으로 인식됩니다.<br>
+                • 작업 복잡도를 분석하여 시간을 할당합니다.
+            </div>
+            <button class="btn-soft-green" onclick="generateAISchedule()" style="width:100%; padding:12px; font-size:14px;">
+                ✨ AI 스케줄 생성
+            </button>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-soft-orange" onclick="closeAIScheduleModal()">취소</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let schedules = [];
+let templates = [];
+let draggedIndex = null;
+let alarmSettings = { enabled: false, minutesBefore: 5 };
+let notifiedTasks = new Set();
+let alarmCheckInterval = null;
+let deletedHistory = [];
+let sidebarMemoContent = '';
+const START_TIME = "9:00";
+
+function loadData(){
+    const saved = localStorage.getItem('scheduleData');
+    const savedTemplates = localStorage.getItem('templates');
+    const savedAlarmSettings = localStorage.getItem('alarmSettings');
+    const savedSidebarMemo = localStorage.getItem('sidebarMemo');
+    
+    if(saved){ schedules = JSON.parse(saved); } 
+    else { schedules = [{duration:1, task:'', completed:false}]; }
+    
+    if(savedTemplates){ templates = JSON.parse(savedTemplates); }
+    
+    if(savedAlarmSettings){
+        alarmSettings = JSON.parse(savedAlarmSettings);
+        document.getElementById('alarmEnabled').checked = alarmSettings.enabled;
+        document.getElementById('alarmMinutes').value = alarmSettings.minutesBefore;
+    }
+    
+    if(savedSidebarMemo){
+        sidebarMemoContent = savedSidebarMemo;
+        document.getElementById('sidebarMemo').value = sidebarMemoContent;
+    }
+    
+    ensureDailyReset();
+    renderTable();
+    updateStats();
+    initAlarmSystem();
+}
+
+function saveData(){
+    localStorage.setItem('scheduleData', JSON.stringify(schedules));
+    localStorage.setItem('templates', JSON.stringify(templates));
+    localStorage.setItem('alarmSettings', JSON.stringify(alarmSettings));
+}
+
+function parseTime(t){ const [h, m] = t.split(':').map(Number); return h + m/60; }
+
+function formatTime(h){
+    const hours = Math.floor(h);
+    const minutes = Math.round((h - hours) * 60);
+    let displayHour = hours % 12; 
+    if(displayHour === 0) displayHour = 12;
+    return `${displayHour}:${minutes.toString().padStart(2,'0')}`;
+}
+
+function nowInHours(){ const n = new Date(); return n.getHours() + n.getMinutes()/60; }
+
+function calculateTimes(){
+    let cur = parseTime(START_TIME);
+    schedules.forEach(s => { 
+        s.start = formatTime(cur); 
+        s.startNum = cur; 
+        cur += s.duration; 
+        s.end = formatTime(cur); 
+        s.endNum = cur; 
+    });
+}
+
+function renderTable(){
+    calculateTimes();
+    updateSummary();
+    updateStats();
+    const tbody = document.getElementById('scheduleBody');
+    tbody.innerHTML = '';
+    const nowH = nowInHours();
+    
+    schedules.forEach((s, i) => {
+        const tr = document.createElement('tr');
+        tr.draggable = true;
+        tr.dataset.index = i;
+        
+        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
+        if(isMeal) tr.classList.add('meal-row');
+        
+        // 현재 진행 중인 일정
+        if(nowH >= s.startNum && nowH < s.endNum) {
+            tr.classList.add('active');
+        }
+        
+        // 시간이 지난 일정 = 완료 처리
+        if(nowH >= s.endNum) {
+            s.completed = true;
+        }
+        
+        if(s.completed) tr.classList.add('completed-row');
+
+        const d = document.createElement('td'); 
+        d.className = 'duration-cell'; 
+        d.innerHTML = `<input type="number" step="0.5" value="${s.duration}" onchange="updateDuration(${i},this.value)">`;
+        tr.appendChild(d);
+        
+        const t = document.createElement('td'); 
+        t.className = 'time-cell'; 
+        t.textContent = `${s.start} - ${s.end}`;
+        tr.appendChild(t);
+        
+        const task = document.createElement('td'); 
+        task.className = 'task-cell';
+        task.innerHTML = `<input class='task-input' type='text' value='${s.task || ''}' oninput='updateTaskInput(${i}, this.value)' onblur='updateTask(${i}, this.value)' onkeydown='handleTaskKeyDown(event, ${i})'>`;
+        tr.appendChild(task);
+        
+        tr.addEventListener('dragstart', handleDragStart);
+        tr.addEventListener('dragover', handleDragOver);
+        tr.addEventListener('drop', handleDrop);
+        tr.addEventListener('dragend', handleDragEnd);
+        
+        tbody.appendChild(tr);
+    });
+}
+
+function handleDragStart(e){
+    draggedIndex = parseInt(this.dataset.index);
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragOver(e){
+    if(e.preventDefault) e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    this.classList.add('drag-over');
+    return false;
+}
+
+function handleDrop(e){
+    if(e.stopPropagation) e.stopPropagation();
+    const dropIndex = parseInt(this.dataset.index);
+    if(draggedIndex !== dropIndex){
+        const item = schedules.splice(draggedIndex, 1)[0];
+        schedules.splice(dropIndex, 0, item);
+        updateAllTimes();
+    }
+    return false;
+}
+
+function handleDragEnd(e){
+    document.querySelectorAll('#scheduleBody tr').forEach(tr => {
+        tr.classList.remove('dragging', 'drag-over');
+    });
+}
+
+function updateDuration(i, v){ schedules[i].duration = parseFloat(v) || 0.5; updateAllTimes(); }
+function updateTask(i, v){ schedules[i].task = v; saveData(); }
+function updateTaskInput(i, v){ schedules[i].task = v; saveData(); }
+
+function handleTaskKeyDown(event, currentIndex){
+    // Ctrl + D: 현재 행 복사
+    if(event.ctrlKey && event.key === 'd'){
+        event.preventDefault();
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        copyRow(currentIndex);
+        return;
+    }
+    
+    // Ctrl + Backspace: 현재 행 삭제
+    if(event.ctrlKey && event.key === 'Backspace'){
+        event.preventDefault();
+        deleteCurrentRow(currentIndex);
+        return;
+    }
+    
+    // Ctrl + Enter: 현재 행 아래에 새 행 추가
+    if(event.ctrlKey && event.key === 'Enter'){
+        event.preventDefault();
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        addRowBelow(currentIndex);
+        return;
+    }
+    
+    // Enter: 다음 할일로 이동
+    if(event.key === 'Enter'){
+        event.preventDefault();
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        
+        const nextIndex = currentIndex + 1;
+        if(nextIndex < schedules.length){
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('.task-input');
+                if(inputs[nextIndex]) inputs[nextIndex].focus();
+            }, 0);
+        }
+        return;
+    }
+    
+    if(event.key === 'ArrowDown'){
+        event.preventDefault();
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        
+        const nextIndex = currentIndex + 1;
+        if(nextIndex < schedules.length){
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('.task-input');
+                if(inputs[nextIndex]) inputs[nextIndex].focus();
+            }, 0);
+        }
+    } else if(event.key === 'ArrowUp'){
+        event.preventDefault();
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        
+        const prevIndex = currentIndex - 1;
+        if(prevIndex >= 0){
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('.task-input');
+                if(inputs[prevIndex]) inputs[prevIndex].focus();
+            }, 0);
+        }
+    }
+}
+
+function copyRow(i){ 
+    const s = schedules[i]; 
+    schedules.splice(i + 1, 0, {duration: s.duration, task: '', completed: false}); 
+    updateAllTimes(); 
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.task-input');
+        if(inputs[i + 1]) inputs[i + 1].focus();
+    }, 0);
+}
+
+function deleteCurrentRow(currentIndex){
+    if(schedules.length === 1){
+        return;
+    }
+    deletedHistory.push({
+        index: currentIndex,
+        data: JSON.parse(JSON.stringify(schedules[currentIndex]))
+    });
+    schedules.splice(currentIndex, 1);
+    updateAllTimes();
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.task-input');
+        const focusIndex = Math.min(currentIndex, inputs.length - 1);
+        if(inputs[focusIndex]) inputs[focusIndex].focus();
+    }, 0);
+}
+
+function addRowBelow(currentIndex){
+    schedules.splice(currentIndex + 1, 0, {duration: 1, task: '', completed: false});
+    updateAllTimes();
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.task-input');
+        if(inputs[currentIndex + 1]) inputs[currentIndex + 1].focus();
+    }, 0);
+}
+
+function undoDelete(){
+    if(deletedHistory.length === 0){
+        return;
+    }
+    const last = deletedHistory.pop();
+    schedules.splice(last.index, 0, last.data);
+    updateAllTimes();
+}
+
+function copyWorkContent(){
+    let content = '';
+    schedules.forEach(s => {
+        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
+        if(!isMeal && s.task.trim()){
+            content += `- ${s.task}(${s.duration}시간)\n`;
+        }
+    });
+    
+    if(!content){
+        return;
+    }
+    
+    navigator.clipboard.writeText(content).then(() => {
+        // 복사 완료 (알림 없음)
+    }).catch(err => {
+        console.error('복사 실패:', err);
+    });
+}
+
+function updateAllTimes(){ 
+    calculateTimes(); 
+    renderTable(); 
+    saveData(); 
+    notifiedTasks.clear();
+}
+
+function updateSummary(){
+    const nowH = nowInHours();
+    let remainingHours = 0;
+    let remainingCount = 0;
+    let completedWorkHours = 0;
+    let completedCount = 0;
+    
+    schedules.forEach(s => {
+        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
+        
+        // 남은 시간 = 현재 + 미래 일정 (식사/회의 제외)
+        if(nowH < s.endNum && !isMeal){
+            remainingHours += s.duration;
+            remainingCount++;
+        }
+        
+        // 완료된 업무 = 시간이 지난 일정 (식사/회의 제외)
+        if(s.completed && !isMeal){
+            completedWorkHours += s.duration;
+            completedCount++;
+        }
+    });
+    
+    document.getElementById('remainingTime').textContent = `${formatHours(remainingHours)}(${remainingCount}개)`;
+    document.getElementById('workHours').textContent = `${formatHours(completedWorkHours)}(${completedCount}개)`;
+}
+
+function formatHours(totalHours){
+    const hours = Math.floor(totalHours);
+    const minutes = Math.round((totalHours - hours) * 60);
+    
+    if(hours > 0 && minutes > 0){
+        return `${hours}시간 ${minutes}분`;
+    } else if(hours > 0){
+        return `${hours}시간`;
+    } else if(minutes > 0){
+        return `${minutes}분`;
+    } else {
+        return `0시간`;
+    }
+}
+
+function saveSidebarMemo(){
+    sidebarMemoContent = document.getElementById('sidebarMemo').value;
+    localStorage.setItem('sidebarMemo', sidebarMemoContent);
+}
+
+function updateStats(){
+    const nowH = nowInHours();
+    let totalCount = schedules.length;
+    let completedCount = schedules.filter(s => s.completed).length;
+    let totalHours = 0;
+    
+    schedules.forEach(s => {
+        if(s.completed){
+            totalHours += s.duration;
+        }
+    });
+    
+    const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    
+    document.getElementById('statsContent').innerHTML = `
+        <div class="stats-item">
+            <span class="stats-label">전체 일정</span>
+            <span class="stats-value">${totalCount}개</span>
+        </div>
+        <div class="stats-item">
+            <span class="stats-label">완료율</span>
+            <span class="stats-value">${completionRate}%</span>
+        </div>
+        <div class="stats-item">
+            <span class="stats-label">진행 시간</span>
+            <span class="stats-value">${formatHours(totalHours)}</span>
+        </div>
+    `;
+}
+
+function ensureDailyReset(){
+    const today = new Date().toDateString();
+    const last = localStorage.getItem('lastReset');
+    if(last !== today){
+        schedules.forEach(s => { s.completed = false; });
+        localStorage.setItem('lastReset', today);
+        notifiedTasks.clear();
+        saveData();
+        renderTable();
+    }
+}
+
+function openTemplateModal(){ renderTemplateList(); document.getElementById('templateModal').classList.add('show'); }
+function closeTemplateModal(){ document.getElementById('templateModal').classList.remove('show'); }
+function openSaveTemplateModal(){ document.getElementById('templateName').value = ''; document.getElementById('saveTemplateModal').classList.add('show'); }
+function closeSaveTemplateModal(){ document.getElementById('saveTemplateModal').classList.remove('show'); }
+
+function saveTemplate(){
+    const name = document.getElementById('templateName').value.trim();
+    if(!name){ alert('템플릿 이름을 입력하세요.'); return; }
+    
+    templates.push({
+        id: Date.now(),
+        name: name,
+        schedules: JSON.parse(JSON.stringify(schedules)),
+        createdAt: new Date().toISOString()
+    });
+    
+    saveData();
+    closeSaveTemplateModal();
+    renderTemplateList();
+    alert('템플릿이 저장되었습니다!');
+}
+
+function renderTemplateList(){
+    const container = document.getElementById('templateList');
+    if(templates.length === 0){
+        container.innerHTML = '<p style="color:#7f8c8d; text-align:center;">저장된 템플릿이 없습니다.</p>';
+        return;
+    }
+    
+    container.innerHTML = templates.map((t, i) => `
+        <div class="template-item" onclick="loadTemplate(${i})">
+            <div class="template-name">${t.name}</div>
+            <div class="template-info">
+                ${t.schedules.length}개 일정 · ${new Date(t.createdAt).toLocaleDateString()}
+                <button class="btn-danger" onclick="event.stopPropagation(); deleteTemplate(${i})" style="float:right; padding:4px 8px; font-size:11px;">삭제</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function loadTemplate(index){
+    if(confirm('현재 일정을 템플릿으로 교체하시겠습니까?')){
+        const template = templates[index];
+        schedules = JSON.parse(JSON.stringify(template.schedules));
+        updateAllTimes();
+        closeTemplateModal();
+        alert('템플릿이 적용되었습니다!');
+    }
+}
+
+function deleteTemplate(index){ if(confirm('이 템플릿을 삭제하시겠습니까?')){ templates.splice(index, 1); saveData(); renderTemplateList(); } }
+
+function openAIScheduleModal(){ document.getElementById('aiScheduleModal').classList.add('show'); }
+function closeAIScheduleModal(){ document.getElementById('aiScheduleModal').classList.remove('show'); }
+
+async function generateAISchedule(){
+    const taskInput = document.getElementById('aiTaskInput').value.trim();
+    const totalHours = parseFloat(document.getElementById('aiTotalHours').value) || 8;
+    
+    if(!taskInput){
+        alert('할 일을 입력해주세요.');
+        return;
+    }
+    
+    const tasks = taskInput.split('\n').filter(t => t.trim()).map(t => t.trim());
+    
+    if(tasks.length === 0){
+        alert('최소 1개 이상의 할 일을 입력해주세요.');
+        return;
+    }
+    
+    try {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 1000,
+                messages: [
+                    {
+                        role: "user",
+                        content: `다음 작업 목록을 총 ${totalHours}시간에 맞춰 일정을 배분해주세요.
+
+작업 목록:
+${tasks.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+
+규칙:
+- 점심식사/점심: 1시간
+- 저녁식사/저녁: 1시간
+- 회의: 1시간
+- 기타 작업: 작업 복잡도에 따라 0.5~3시간 사이로 배분
+- 총 시간은 정확히 ${totalHours}시간이 되어야 함
+- 모든 작업을 포함해야 함
+
+JSON 형식으로만 답변하세요 (다른 설명 없이):
+[
+  {"task": "작업명", "duration": 시간(숫자)},
+  ...
+]`
+                    }
+                ],
+            })
+        });
+
+        const data = await response.json();
+        let content = data.content[0].text.trim();
+        
+        // JSON 추출
+        content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        const aiSchedule = JSON.parse(content);
+        
+        // 현재 스케줄 교체
+        schedules = aiSchedule.map(item => ({
+            duration: item.duration,
+            task: item.task,
+            completed: false
+        }));
+        
+        updateAllTimes();
+        closeAIScheduleModal();
+        alert('AI 스케줄이 생성되었습니다!');
+        
+    } catch(err) {
+        console.error('AI 스케줄링 오류:', err);
+        alert('AI 스케줄링 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+}
 
 async function initAlarmSystem(){
     if('Notification' in window && Notification.permission === 'default'){
