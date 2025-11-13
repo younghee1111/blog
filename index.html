@@ -48,6 +48,8 @@
         
         tr.completed-row .task-cell { background:#f5f5f5 !important; }
         tr.completed-row .task-input { color:#7f8c8d; }
+        tr.completed-row .duration-cell { background:#e8e8e8 !important; }
+        tr.completed-row .time-cell { background:#e8e8e8 !important; color:#7f8c8d; }
         
         tr.active .task-cell { background:#FFF9E6 !important; }
         tr.active .time-cell { background:#FFF7E6 !important; font-weight:700; }
@@ -80,6 +82,16 @@
         .alarm-toggle input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
         .alarm-info { margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 13px; color: #1565c0; line-height: 1.6; }
 
+        .content-wrapper { display: flex; gap: 20px; margin-top: 15px; }
+        .schedule-section { flex: 1; min-width: 0; }
+        .memo-section { display: none; }
+
+        @media (max-width: 1024px){
+            .content-wrapper { flex-direction: column; }
+            .memo-section { width: 100%; }
+            .memo-textarea { min-height: 200px; }
+        }
+
         @media (max-width: 720px){ 
             th, td { padding:6px; font-size:14px; } 
             button { padding: 6px 10px; font-size: 11px; }
@@ -104,21 +116,25 @@
         </div>
     </div>
 
-    <table id="scheduleTable">
-        <thead>
-            <tr>
-                <th style="width:70px;">시간 단위</th>
-                <th style="width:120px;">시간</th>
-                <th>할일</th>
-            </tr>
-        </thead>
-        <tbody id="scheduleBody"></tbody>
-    </table>
+    <div class="content-wrapper">
+        <div class="schedule-section">
+            <table id="scheduleTable">
+                <thead>
+                    <tr>
+                        <th style="width:70px;">시간 단위</th>
+                        <th style="width:120px;">시간</th>
+                        <th>할일</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody"></tbody>
+            </table>
+        </div>
+    </div>
 
     <div class="summary-bar">
-        <span><span class="label">남은 시간:</span> <span class="value" id="remainingTime">0시간</span></span>
+        <span><span class="label">현재 일정:</span> <span class="value" id="remainingTime">없음</span></span>
         <span style="color:#ddd;">|</span>
-        <span><span class="label">총 업무:</span> <span class="value" id="workHours">0시간</span></span>
+        <span><span class="label">완료된 업무:</span> <span class="value" id="workHours">0시간</span></span>
     </div>
 </div>
 
@@ -204,7 +220,7 @@ function loadData(){
     const savedAlarmSettings = localStorage.getItem('alarmSettings');
     
     if(saved){ schedules = JSON.parse(saved); } 
-    else { schedules = [{duration:1, task:''}]; }
+    else { schedules = [{duration:1, task:'', completed:false}]; }
     
     if(savedTemplates){ templates = JSON.parse(savedTemplates); }
     
@@ -262,7 +278,18 @@ function renderTable(){
         
         const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
         if(isMeal) tr.classList.add('meal-row');
-        if(nowH >= s.startNum && nowH < s.endNum) tr.classList.add('active');
+        
+        // 현재 진행 중인 일정
+        if(nowH >= s.startNum && nowH < s.endNum) {
+            tr.classList.add('active');
+        }
+        
+        // 시간이 지난 일정 = 완료 처리
+        if(nowH >= s.endNum) {
+            s.completed = true;
+        }
+        
+        if(s.completed) tr.classList.add('completed-row');
 
         const d = document.createElement('td'); 
         d.className = 'duration-cell'; 
@@ -393,7 +420,7 @@ function handleTaskKeyDown(event, currentIndex){
 
 function copyRow(i){ 
     const s = schedules[i]; 
-    schedules.splice(i + 1, 0, {duration: s.duration, task: ''}); 
+    schedules.splice(i + 1, 0, {duration: s.duration, task: '', completed: false}); 
     updateAllTimes(); 
     setTimeout(() => {
         const inputs = document.querySelectorAll('.task-input');
@@ -419,7 +446,7 @@ function deleteCurrentRow(currentIndex){
 }
 
 function addRowBelow(currentIndex){
-    schedules.splice(currentIndex + 1, 0, {duration: 1, task: ''});
+    schedules.splice(currentIndex + 1, 0, {duration: 1, task: '', completed: false});
     updateAllTimes();
     setTimeout(() => {
         const inputs = document.querySelectorAll('.task-input');
@@ -464,21 +491,30 @@ function updateAllTimes(){
 }
 
 function updateSummary(){
-    let totalHours = 0;
-    let workHours = 0;
+    const nowH = nowInHours();
+    let remainingHours = 0;
+    let remainingCount = 0;
+    let completedWorkHours = 0;
+    let completedCount = 0;
     
     schedules.forEach(s => {
-        totalHours += s.duration;
         const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
-        if(!isMeal){
-            workHours += s.duration;
+        
+        // 남은 시간 = 현재 + 미래 일정 (식사/회의 제외)
+        if(nowH < s.endNum && !isMeal){
+            remainingHours += s.duration;
+            remainingCount++;
+        }
+        
+        // 완료된 업무 = 시간이 지난 일정 (식사/회의 제외)
+        if(s.completed && !isMeal){
+            completedWorkHours += s.duration;
+            completedCount++;
         }
     });
     
-    const remaining = 24 - totalHours;
-    
-    document.getElementById('remainingTime').textContent = formatHours(remaining);
-    document.getElementById('workHours').textContent = formatHours(workHours);
+    document.getElementById('remainingTime').textContent = `${formatHours(remainingHours)}(${remainingCount}개)`;
+    document.getElementById('workHours').textContent = `${formatHours(completedWorkHours)}(${completedCount}개)`;
 }
 
 function formatHours(totalHours){
@@ -500,6 +536,7 @@ function ensureDailyReset(){
     const today = new Date().toDateString();
     const last = localStorage.getItem('lastReset');
     if(last !== today){
+        schedules.forEach(s => { s.completed = false; });
         localStorage.setItem('lastReset', today);
         notifiedTasks.clear();
         saveData();
@@ -581,6 +618,8 @@ function checkAndNotify(){
     calculateTimes();
     
     schedules.forEach((s, i) => {
+        if(s.completed) return;
+        
         // 시작 시간 알림
         const startTaskKey = `start-${s.start}-${s.end}-${s.task}`;
         if(nowH >= s.startNum && nowH < s.startNum + 0.02 && !notifiedTasks.has(startTaskKey)){
