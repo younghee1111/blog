@@ -86,24 +86,28 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            min-height: 300px;
         }
         
         .memo-input-container {
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            gap: 10px;
             margin-bottom: 12px;
         }
         
         .memo-input {
-            flex: 1;
-            padding: 10px 12px;
+            width: 100%;
+            padding: 12px;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             font-family: inherit;
             font-size: 14px;
             outline: none;
             transition: border-color 0.2s;
+            resize: none;
+            min-height: 120px;
+            line-height: 1.6;
+            box-sizing: border-box;
         }
         
         .memo-input:focus {
@@ -112,21 +116,21 @@
         
         .color-selector {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             align-items: center;
         }
         
         .color-option {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 5px;
             cursor: pointer;
             border: 2px solid #e0e0e0;
             transition: all 0.2s;
         }
         
         .color-option:hover {
-            transform: scale(1.1);
+            transform: scale(1.15);
             border-color: #bbb;
         }
         
@@ -141,7 +145,6 @@
             flex-direction: column;
             gap: 10px;
             overflow-y: auto;
-            max-height: 500px;
         }
         
         .memo-item {
@@ -153,6 +156,8 @@
             font-size: 14px;
             line-height: 1.5;
             transition: transform 0.2s;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
         
         .memo-item:hover {
@@ -209,11 +214,6 @@
         .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
         .row.space { margin-bottom: 15px; }
         .row .spacer { margin-left:auto; }
-
-        .summary-bar { background:#E8F5E9; padding:12px 15px; border-radius:8px; margin-top:15px; display:flex; justify-content:center; align-items:center; gap:30px; }
-        .summary-bar span { font-size:14px; color:#2c3e50; }
-        .summary-bar .label { font-weight:bold; }
-        .summary-bar .value { font-weight:bold; color:#1e5e2f; }
 
         table { width:100%; border-collapse: collapse; margin-top: 15px; background: white; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 15px; }
@@ -321,12 +321,6 @@
                 </thead>
                 <tbody id="scheduleBody"></tbody>
             </table>
-
-            <div class="summary-bar">
-                <span><span class="label">현재 일정:</span> <span class="value" id="remainingTime">없음</span></span>
-                <span style="color:#ddd;">|</span>
-                <span><span class="label">완료된 업무:</span> <span class="value" id="workHours">0시간</span></span>
-            </div>
         </div>
     </div>
 
@@ -346,6 +340,10 @@
                 <span class="stat-label">총 업무</span>
                 <span class="stat-value" id="statTotal">0시간(0개)</span>
             </div>
+            <div class="stat-item">
+                <span class="stat-label">완료율</span>
+                <span class="stat-value" id="statProgress">0%</span>
+            </div>
         </div>
 
         <!-- 메모 카드 -->
@@ -355,13 +353,12 @@
                 <span>메모</span>
             </div>
             <div class="memo-input-container">
-                <input 
-                    type="text" 
+                <textarea 
                     class="memo-input" 
                     id="memoInput" 
-                    placeholder="메모를 입력하세요..."
-                    onkeypress="handleMemoKeyPress(event)"
-                />
+                    placeholder="메모를 입력하세요... (Enter: 추가 / Shift+Enter: 줄바꿈)"
+                    onkeydown="handleMemoKeyDown(event)"
+                ></textarea>
                 <div class="color-selector">
                     <div class="color-option active" style="background:#FFF9E6;" data-color="#FFF9E6" onclick="setSelectedColor(this)"></div>
                     <div class="color-option" style="background:#FFE6F0;" data-color="#FFE6F0" onclick="setSelectedColor(this)"></div>
@@ -369,7 +366,6 @@
                     <div class="color-option" style="background:#E5F7E9;" data-color="#E5F7E9" onclick="setSelectedColor(this)"></div>
                     <div class="color-option" style="background:#F0E9FF;" data-color="#F0E9FF" onclick="setSelectedColor(this)"></div>
                 </div>
-                <button class="btn-soft-green" onclick="addMemoItem()">추가</button>
             </div>
             <div class="memo-list" id="memoList">
                 <div class="memo-empty">메모를 추가해보세요 📝</div>
@@ -499,8 +495,8 @@ function setSelectedColor(element){
     selectedMemoColor = element.dataset.color;
 }
 
-function handleMemoKeyPress(event){
-    if(event.key === 'Enter'){
+function handleMemoKeyDown(event){
+    if(event.key === 'Enter' && !event.shiftKey){
         event.preventDefault();
         addMemoItem();
     }
@@ -520,6 +516,7 @@ function addMemoItem(){
     });
     
     input.value = '';
+    input.focus();
     saveData();
     renderMemos();
 }
@@ -538,12 +535,17 @@ function renderMemos(){
         return;
     }
     
-    container.innerHTML = memos.map(memo => `
-        <div class="memo-item" style="background:${memo.color}">
-            ${memo.text}
-            <button class="memo-delete" onclick="deleteMemoItem(${memo.id})">×</button>
-        </div>
-    `).join('');
+    container.innerHTML = memos.map(memo => {
+        // HTML 특수문자만 이스케이프, 공백/줄바꿈은 유지
+        const escapedText = memo.text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        
+        return `<div class="memo-item" style="background:${memo.color}">${escapedText}<button class="memo-delete" onclick="deleteMemoItem(${memo.id})">×</button></div>`;
+    }).join('');
 }
 
 function parseTime(t){ const [h, m] = t.split(':').map(Number); return h + m/60; }
@@ -571,7 +573,6 @@ function calculateTimes(){
 
 function renderTable(){
     calculateTimes();
-    updateSummary();
     updateStats();
     const tbody = document.getElementById('scheduleBody');
     tbody.innerHTML = '';
@@ -607,7 +608,19 @@ function renderTable(){
         
         const task = document.createElement('td'); 
         task.className = 'task-cell';
-        task.innerHTML = `<input class='task-input' type='text' value='${s.task || ''}' oninput='updateTaskInput(${i}, this.value)' onblur='updateTask(${i}, this.value)' onkeydown='handleTaskKeyDown(event, ${i})'>`;
+        const input = document.createElement('input');
+        input.className = 'task-input';
+        input.type = 'text';
+        input.value = s.task || '';
+        
+        // 클로저를 사용하여 정확한 인덱스 전달
+        (function(index) {
+            input.oninput = function() { updateTaskInput(index, this.value); };
+            input.onblur = function() { updateTask(index, this.value); };
+            input.onkeydown = function(e) { handleTaskKeyDown(e, index); };
+        })(i);
+        
+        task.appendChild(input);
         tr.appendChild(task);
         
         tr.addEventListener('dragstart', handleDragStart);
@@ -791,28 +804,7 @@ function updateAllTimes(){
 }
 
 function updateSummary(){
-    const nowH = nowInHours();
-    let remainingHours = 0;
-    let remainingCount = 0;
-    let completedWorkHours = 0;
-    let completedCount = 0;
-    
-    schedules.forEach(s => {
-        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
-        
-        if(nowH < s.endNum && !isMeal){
-            remainingHours += s.duration;
-            remainingCount++;
-        }
-        
-        if(s.completed && !isMeal){
-            completedWorkHours += s.duration;
-            completedCount++;
-        }
-    });
-    
-    document.getElementById('remainingTime').textContent = `${formatHours(remainingHours)}(${remainingCount}개)`;
-    document.getElementById('workHours').textContent = `${formatHours(completedWorkHours)}(${completedCount}개)`;
+    // 더 이상 사용하지 않음 (하단 바 삭제됨)
 }
 
 function updateStats(){
@@ -843,8 +835,11 @@ function updateStats(){
         }
     });
     
+    const progressPercent = totalWorkHours > 0 ? Math.round((completedWorkHours / totalWorkHours) * 100) : 0;
+    
     document.getElementById('statRemaining').textContent = `${formatHours(remainingHours)}(${remainingCount}개)`;
     document.getElementById('statTotal').textContent = `${formatHours(completedWorkHours)}(${completedWorkCount}개)`;
+    document.getElementById('statProgress').textContent = `${progressPercent}%`;
 }
 
 function formatHours(totalHours){
