@@ -340,7 +340,6 @@ function toggleCompleted(i, ch){ schedules[i].completed = !!ch; saveData(); rend
 function handleTaskKeyDown(event, currentIndex){
     if(event.key === 'ArrowDown'){
         event.preventDefault();
-        // 현재 값 저장
         schedules[currentIndex].task = event.target.value;
         saveData();
         
@@ -353,7 +352,6 @@ function handleTaskKeyDown(event, currentIndex){
         }
     } else if(event.key === 'ArrowUp'){
         event.preventDefault();
-        // 현재 값 저장
         schedules[currentIndex].task = event.target.value;
         saveData();
         
@@ -521,11 +519,9 @@ function checkAndNotify(){
     schedules.forEach((s, i) => {
         if(s.completed) return;
         
-        // 종료 시간에서 설정한 분(minutesBefore)을 뺀 시간
         const alarmTime = s.endNum - (alarmSettings.minutesBefore / 60);
         const taskKey = `${s.start}-${s.end}-${s.task}`;
         
-        // 현재 시간이 알람 시간 이후이고, 종료 시간 이전이며, 아직 알림을 보내지 않았다면
         if(nowH >= alarmTime && nowH < s.endNum && !notifiedTasks.has(taskKey)){
             notifiedTasks.add(taskKey);
             showNotification(s, i);
@@ -541,12 +537,11 @@ function showNotification(currentTask, currentIndex){
     const notification = new Notification('📅 5분 전 종료', {
         body: `[다음 할일]\n${nextTaskText}`,
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
-        tag: 'schedule-alarm',
-        requireInteraction: false,
+        tag: 'schedule-alarm-' + Date.now(),
+        requireInteraction: true,
         silent: false
     });
     
-    setTimeout(() => notification.close(), 30000);
     notification.onclick = function(){ window.focus(); this.close(); };
 }
 
@@ -580,11 +575,10 @@ async function testAlarm(){
     const notification = new Notification('🔔 알람 테스트', {
         body: `종료 ${alarmSettings.minutesBefore}분 전\n\n다음 할일: 테스트 할일`,
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🔔</text></svg>',
-        tag: 'test-alarm',
-        requireInteraction: false
+        tag: 'test-alarm-' + Date.now(),
+        requireInteraction: true
     });
     
-    setTimeout(() => notification.close(), 30000);
     notification.onclick = function(){ window.focus(); this.close(); };
 }
 
