@@ -8,9 +8,194 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         html { overflow-y: scroll; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; margin: 20px 0; font-size: 20px; text-align: center; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0;
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        
+        /* 2단 레이아웃 컨테이너 */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .left-panel {
+            flex: 7;
+            min-width: 0;
+        }
+        
+        .right-panel {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 280px;
+        }
+        
+        .card {
+            background: white;
+            padding: 24px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 오늘의 통계 카드 */
+        .stats-card {
+            flex-shrink: 0;
+        }
+        
+        .stat-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .stat-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        /* 메모 카드 */
+        .memo-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 300px;
+        }
+        
+        .memo-input-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .memo-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .memo-input:focus {
+            border-color: #3498db;
+        }
+        
+        .color-selector {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        
+        .color-option {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+            border-color: #bbb;
+        }
+        
+        .color-option.active {
+            border-color: #2c3e50;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .memo-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+        
+        .memo-item {
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.5;
+            transition: transform 0.2s;
+        }
+        
+        .memo-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .memo-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #e74c3c;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .memo-item:hover .memo-delete {
+            opacity: 1;
+        }
+        
+        .memo-delete:hover {
+            background: #fff;
+        }
+        
+        .memo-empty {
+            text-align: center;
+            color: #95a5a6;
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+        
+        /* 기존 스타일 */
+        h1 { color: #2c3e50; margin: 0 0 20px 0; font-size: 20px; text-align: center; }
 
         button { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         button:hover { filter: brightness(0.95); }
@@ -82,42 +267,50 @@
         .alarm-toggle input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
         .alarm-info { margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 13px; color: #1565c0; line-height: 1.6; }
 
-        .content-wrapper { display: flex; gap: 20px; margin-top: 15px; }
-        .schedule-section { flex: 1; min-width: 0; }
-        .memo-section { display: none; }
-
-        @media (max-width: 1024px){
-            .content-wrapper { flex-direction: column; }
-            .memo-section { width: 100%; }
-            .memo-textarea { min-height: 200px; }
+        /* 반응형 */
+        @media (max-width: 900px){
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .right-panel {
+                min-width: 0;
+            }
+            
+            .memo-card {
+                min-height: 200px;
+            }
         }
 
         @media (max-width: 720px){ 
+            body { padding: 10px; }
             th, td { padding:6px; font-size:14px; } 
             button { padding: 6px 10px; font-size: 11px; }
             .modal-content { padding: 20px; }
             .summary-bar { flex-direction: column; gap: 10px; }
+            .card { padding: 16px; }
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>📅 일정관리 시스템</h1>
+<div class="main-layout">
+    <!-- 왼쪽 패널: 일정관리 시스템 -->
+    <div class="left-panel">
+        <div class="card">
+            <h1>📅 일정관리 시스템</h1>
 
-    <div class="row space">
-        <div class="row">
-            <button class="btn-soft-pink" onclick="openTemplateModal()">📋 템플릿</button>
-            <button class="btn-soft-blue" onclick="openAlarmModal()">🔔 알람설정</button>
-        </div>
-        <div class="spacer"></div>
-        <div class="row">
-            <button class="btn-soft-violet" onclick="undoDelete()">↩️ 이전</button>
-            <button class="btn-soft-green" onclick="copyWorkContent()">📋 업무내용</button>
-        </div>
-    </div>
+            <div class="row space">
+                <div class="row">
+                    <button class="btn-soft-pink" onclick="openTemplateModal()">📋 템플릿</button>
+                    <button class="btn-soft-blue" onclick="openAlarmModal()">🔔 알람설정</button>
+                </div>
+                <div class="spacer"></div>
+                <div class="row">
+                    <button class="btn-soft-violet" onclick="undoDelete()">↩️ 이전</button>
+                    <button class="btn-soft-green" onclick="copyWorkContent()">📋 업무내용</button>
+                </div>
+            </div>
 
-    <div class="content-wrapper">
-        <div class="schedule-section">
             <table id="scheduleTable">
                 <thead>
                     <tr>
@@ -128,16 +321,64 @@
                 </thead>
                 <tbody id="scheduleBody"></tbody>
             </table>
+
+            <div class="summary-bar">
+                <span><span class="label">현재 일정:</span> <span class="value" id="remainingTime">없음</span></span>
+                <span style="color:#ddd;">|</span>
+                <span><span class="label">완료된 업무:</span> <span class="value" id="workHours">0시간</span></span>
+            </div>
         </div>
     </div>
 
-    <div class="summary-bar">
-        <span><span class="label">현재 일정:</span> <span class="value" id="remainingTime">없음</span></span>
-        <span style="color:#ddd;">|</span>
-        <span><span class="label">완료된 업무:</span> <span class="value" id="workHours">0시간</span></span>
+    <!-- 오른쪽 패널: 통계 & 메모 -->
+    <div class="right-panel">
+        <!-- 오늘의 통계 카드 -->
+        <div class="card stats-card">
+            <div class="card-title">
+                <span>📊</span>
+                <span>오늘의 통계</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">남은 시간</span>
+                <span class="stat-value" id="statRemaining">0시간(0개)</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">총 업무</span>
+                <span class="stat-value" id="statTotal">0시간(0개)</span>
+            </div>
+        </div>
+
+        <!-- 메모 카드 -->
+        <div class="card memo-card">
+            <div class="card-title">
+                <span>📝</span>
+                <span>메모</span>
+            </div>
+            <div class="memo-input-container">
+                <input 
+                    type="text" 
+                    class="memo-input" 
+                    id="memoInput" 
+                    placeholder="메모를 입력하세요..."
+                    onkeypress="handleMemoKeyPress(event)"
+                />
+                <div class="color-selector">
+                    <div class="color-option active" style="background:#FFF9E6;" data-color="#FFF9E6" onclick="setSelectedColor(this)"></div>
+                    <div class="color-option" style="background:#FFE6F0;" data-color="#FFE6F0" onclick="setSelectedColor(this)"></div>
+                    <div class="color-option" style="background:#E6F0FF;" data-color="#E6F0FF" onclick="setSelectedColor(this)"></div>
+                    <div class="color-option" style="background:#E5F7E9;" data-color="#E5F7E9" onclick="setSelectedColor(this)"></div>
+                    <div class="color-option" style="background:#F0E9FF;" data-color="#F0E9FF" onclick="setSelectedColor(this)"></div>
+                </div>
+                <button class="btn-soft-green" onclick="addMemoItem()">추가</button>
+            </div>
+            <div class="memo-list" id="memoList">
+                <div class="memo-empty">메모를 추가해보세요 📝</div>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- 모달들 -->
 <div id="templateModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -212,12 +453,15 @@ let alarmSettings = { enabled: false, minutesBefore: 5 };
 let notifiedTasks = new Set();
 let alarmCheckInterval = null;
 let deletedHistory = [];
+let memos = [];
+let selectedMemoColor = '#FFF9E6';
 const START_TIME = "9:00";
 
 function loadData(){
     const saved = localStorage.getItem('scheduleData');
     const savedTemplates = localStorage.getItem('templates');
     const savedAlarmSettings = localStorage.getItem('alarmSettings');
+    const savedMemos = localStorage.getItem('dailyMemos');
     
     if(saved){ schedules = JSON.parse(saved); } 
     else { schedules = [{duration:1, task:'', completed:false}]; }
@@ -230,6 +474,11 @@ function loadData(){
         document.getElementById('alarmMinutes').value = alarmSettings.minutesBefore;
     }
     
+    if(savedMemos){
+        memos = JSON.parse(savedMemos);
+        renderMemos();
+    }
+    
     ensureDailyReset();
     renderTable();
     initAlarmSystem();
@@ -239,6 +488,62 @@ function saveData(){
     localStorage.setItem('scheduleData', JSON.stringify(schedules));
     localStorage.setItem('templates', JSON.stringify(templates));
     localStorage.setItem('alarmSettings', JSON.stringify(alarmSettings));
+    localStorage.setItem('dailyMemos', JSON.stringify(memos));
+}
+
+function setSelectedColor(element){
+    document.querySelectorAll('.color-option').forEach(opt => {
+        opt.classList.remove('active');
+    });
+    element.classList.add('active');
+    selectedMemoColor = element.dataset.color;
+}
+
+function handleMemoKeyPress(event){
+    if(event.key === 'Enter'){
+        event.preventDefault();
+        addMemoItem();
+    }
+}
+
+function addMemoItem(){
+    const input = document.getElementById('memoInput');
+    const text = input.value.trim();
+    
+    if(!text) return;
+    
+    memos.push({
+        id: Date.now(),
+        text: text,
+        color: selectedMemoColor,
+        createdAt: new Date().toISOString()
+    });
+    
+    input.value = '';
+    saveData();
+    renderMemos();
+}
+
+function deleteMemoItem(id){
+    memos = memos.filter(m => m.id !== id);
+    saveData();
+    renderMemos();
+}
+
+function renderMemos(){
+    const container = document.getElementById('memoList');
+    
+    if(memos.length === 0){
+        container.innerHTML = '<div class="memo-empty">메모를 추가해보세요 📝</div>';
+        return;
+    }
+    
+    container.innerHTML = memos.map(memo => `
+        <div class="memo-item" style="background:${memo.color}">
+            ${memo.text}
+            <button class="memo-delete" onclick="deleteMemoItem(${memo.id})">×</button>
+        </div>
+    `).join('');
 }
 
 function parseTime(t){ const [h, m] = t.split(':').map(Number); return h + m/60; }
@@ -267,6 +572,7 @@ function calculateTimes(){
 function renderTable(){
     calculateTimes();
     updateSummary();
+    updateStats();
     const tbody = document.getElementById('scheduleBody');
     tbody.innerHTML = '';
     const nowH = nowInHours();
@@ -279,12 +585,10 @@ function renderTable(){
         const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
         if(isMeal) tr.classList.add('meal-row');
         
-        // 현재 진행 중인 일정
         if(nowH >= s.startNum && nowH < s.endNum) {
             tr.classList.add('active');
         }
         
-        // 시간이 지난 일정 = 완료 처리
         if(nowH >= s.endNum) {
             s.completed = true;
         }
@@ -350,7 +654,6 @@ function updateTask(i, v){ schedules[i].task = v; saveData(); }
 function updateTaskInput(i, v){ schedules[i].task = v; saveData(); }
 
 function handleTaskKeyDown(event, currentIndex){
-    // Ctrl + D: 현재 행 복사
     if(event.ctrlKey && event.key === 'd'){
         event.preventDefault();
         schedules[currentIndex].task = event.target.value;
@@ -359,14 +662,12 @@ function handleTaskKeyDown(event, currentIndex){
         return;
     }
     
-    // Ctrl + Backspace: 현재 행 삭제
     if(event.ctrlKey && event.key === 'Backspace'){
         event.preventDefault();
         deleteCurrentRow(currentIndex);
         return;
     }
     
-    // Ctrl + Enter: 현재 행 아래에 새 행 추가
     if(event.ctrlKey && event.key === 'Enter'){
         event.preventDefault();
         schedules[currentIndex].task = event.target.value;
@@ -375,7 +676,6 @@ function handleTaskKeyDown(event, currentIndex){
         return;
     }
     
-    // Enter: 다음 할일로 이동
     if(event.key === 'Enter'){
         event.preventDefault();
         schedules[currentIndex].task = event.target.value;
@@ -477,7 +777,7 @@ function copyWorkContent(){
     }
     
     navigator.clipboard.writeText(content).then(() => {
-        // 복사 완료 (알림 없음)
+        // 복사 완료
     }).catch(err => {
         console.error('복사 실패:', err);
     });
@@ -500,13 +800,11 @@ function updateSummary(){
     schedules.forEach(s => {
         const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
         
-        // 남은 시간 = 현재 + 미래 일정 (식사/회의 제외)
         if(nowH < s.endNum && !isMeal){
             remainingHours += s.duration;
             remainingCount++;
         }
         
-        // 완료된 업무 = 시간이 지난 일정 (식사/회의 제외)
         if(s.completed && !isMeal){
             completedWorkHours += s.duration;
             completedCount++;
@@ -515,6 +813,38 @@ function updateSummary(){
     
     document.getElementById('remainingTime').textContent = `${formatHours(remainingHours)}(${remainingCount}개)`;
     document.getElementById('workHours').textContent = `${formatHours(completedWorkHours)}(${completedCount}개)`;
+}
+
+function updateStats(){
+    const nowH = nowInHours();
+    let remainingHours = 0;
+    let remainingCount = 0;
+    let totalWorkHours = 0;
+    let totalWorkCount = 0;
+    let completedWorkHours = 0;
+    let completedWorkCount = 0;
+    
+    schedules.forEach(s => {
+        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
+        
+        if(!isMeal){
+            totalWorkHours += s.duration;
+            totalWorkCount++;
+            
+            if(nowH < s.endNum){
+                remainingHours += s.duration;
+                remainingCount++;
+            }
+            
+            if(s.completed){
+                completedWorkHours += s.duration;
+                completedWorkCount++;
+            }
+        }
+    });
+    
+    document.getElementById('statRemaining').textContent = `${formatHours(remainingHours)}(${remainingCount}개)`;
+    document.getElementById('statTotal').textContent = `${formatHours(completedWorkHours)}(${completedWorkCount}개)`;
 }
 
 function formatHours(totalHours){
@@ -620,14 +950,12 @@ function checkAndNotify(){
     schedules.forEach((s, i) => {
         if(s.completed) return;
         
-        // 시작 시간 알림
         const startTaskKey = `start-${s.start}-${s.end}-${s.task}`;
         if(nowH >= s.startNum && nowH < s.startNum + 0.02 && !notifiedTasks.has(startTaskKey)){
             notifiedTasks.add(startTaskKey);
             showStartNotification(s, i);
         }
         
-        // 종료 전 알림
         const alarmTime = s.endNum - (alarmSettings.minutesBefore / 60);
         const endTaskKey = `end-${s.start}-${s.end}-${s.task}`;
         
