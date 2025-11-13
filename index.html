@@ -95,6 +95,14 @@
 <div class="container">
     <h1>📅 일정관리 시스템</h1>
 
+    <div style="background:#E8F5E9; padding:12px 15px; border-radius:8px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:14px; color:#2c3e50;">
+            <span style="font-weight:bold;">업무:</span> 
+            <span id="workHours" style="font-weight:bold; color:#1e5e2f;">0시간</span>
+            <span style="color:#7f8c8d; font-size:12px; margin-left:8px;">(점심, 저녁식사 제외)</span>
+        </div>
+    </div>
+
     <div class="start-time-input">
         <label>시작시간:</label>
         <input type="text" id="startTime" value="9:00" onchange="updateAllTimes()" placeholder="예: 9:00" />
@@ -256,6 +264,7 @@ function calculateTimes(){
 
 function renderTable(){
     calculateTimes();
+    updateWorkHoursSummary();
     const tbody = document.getElementById('scheduleBody');
     tbody.innerHTML = '';
     const nowH = nowInHours();
@@ -338,6 +347,48 @@ function updateTaskInput(i, v){ schedules[i].task = v; saveData(); }
 function toggleCompleted(i, ch){ schedules[i].completed = !!ch; saveData(); renderTable(); }
 
 function handleTaskKeyDown(event, currentIndex){
+    // Ctrl + D: 현재 행 복사
+    if(event.ctrlKey && event.key === 'd'){
+        event.preventDefault();
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        copyRow(currentIndex);
+        return;
+    }
+    
+    // Ctrl + Backspace: 현재 행 삭제
+    if(event.ctrlKey && event.key === 'Backspace'){
+        event.preventDefault();
+        if(schedules.length === 1){
+            alert('최소 1행 필요');
+            return;
+        }
+        schedules.splice(currentIndex, 1);
+        updateAllTimes();
+        setTimeout(() => {
+            const inputs = document.querySelectorAll('.task-input');
+            const focusIndex = Math.min(currentIndex, inputs.length - 1);
+            if(inputs[focusIndex]) inputs[focusIndex].focus();
+        }, 0);
+        return;
+    }
+    
+    // Enter: 다음 할일로 이동
+    if(event.key === 'Enter'){
+        event.preventDefault();
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        
+        const nextIndex = currentIndex + 1;
+        if(nextIndex < schedules.length){
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('.task-input');
+                if(inputs[nextIndex]) inputs[nextIndex].focus();
+            }, 0);
+        }
+        return;
+    }
+    
     if(event.key === 'ArrowDown'){
         event.preventDefault();
         schedules[currentIndex].task = event.target.value;
@@ -495,6 +546,32 @@ function loadTemplate(index){
 
 function deleteTemplate(index){ if(confirm('이 템플릿을 삭제하시겠습니까?')){ templates.splice(index, 1); saveData(); renderTemplateList(); } }
 
+function updateWorkHoursSummary(){
+    let totalHours = 0;
+    schedules.forEach(s => {
+        const isMeal = /점심|점심식사|저녁|저녁식사/i.test(s.task);
+        if(!isMeal){
+            totalHours += s.duration;
+        }
+    });
+    
+    const hours = Math.floor(totalHours);
+    const minutes = Math.round((totalHours - hours) * 60);
+    
+    let timeText = '';
+    if(hours > 0 && minutes > 0){
+        timeText = `${hours}시간 ${minutes}분`;
+    } else if(hours > 0){
+        timeText = `${hours}시간`;
+    } else if(minutes > 0){
+        timeText = `${minutes}분`;
+    } else {
+        timeText = `0시간`;
+    }
+    
+    document.getElementById('workHours').textContent = timeText;
+}
+
 async function initAlarmSystem(){
     if('Notification' in window && Notification.permission === 'default'){
         await Notification.requestPermission();
@@ -539,14 +616,26 @@ function checkAndNotify(){
     });
 }
 
-function showNotification(currentTask, currentIndex){
+function showStartNotification(currentTask, currentIndex){
+    const notification = new Notification('🎯 할일 시작', {
+        body: `[현재 할일]\n${currentTask.task || '할일 없음'}`,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🎯</text></svg>',
+        tag: 'schedule-start-' + Date.now(),
+        requireInteraction: true,
+        silent: false
+    });
+    
+    notification.onclick = function(){ window.focus(); this.close(); };
+}
+
+function showEndNotification(currentTask, currentIndex){
     const nextTask = schedules[currentIndex + 1];
     const nextTaskText = nextTask ? (nextTask.task || '할일 없음') : '마지막 일정';
     
-    const notification = new Notification('📅 5분 전 종료', {
+    const notification = new Notification(`📅 ${alarmSettings.minutesBefore}분 전 종료`, {
         body: `[다음 할일]\n${nextTaskText}`,
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
-        tag: 'schedule-alarm-' + Date.now(),
+        tag: 'schedule-end-' + Date.now(),
         requireInteraction: true,
         silent: false
     });
