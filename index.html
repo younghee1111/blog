@@ -10,7 +10,7 @@
         html { overflow-y: scroll; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; margin-bottom: 20px; font-size: 20px;}
+        h1 { color: #2c3e50; margin: 20px 0; font-size: 20px; text-align: center; }
 
         button { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         button:hover { filter: brightness(0.95); }
@@ -22,29 +22,24 @@
         .btn-soft-pink { background:#FFE6F0; color:#8B1E5A; }
 
         .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-        .row.space { margin-bottom: 10px; }
+        .row.space { margin-bottom: 15px; }
         .row .spacer { margin-left:auto; }
 
-        .start-time-input { margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-        .start-time-input label { font-weight: bold; color: #2c3e50; }
-        .start-time-input input { width: 150px; padding:8px 10px; border:1px solid #ccc; border-radius:6px; }
+        .summary-bar { background:#E8F5E9; padding:12px 15px; border-radius:8px; margin-top:15px; display:flex; justify-content:center; align-items:center; gap:30px; }
+        .summary-bar span { font-size:14px; color:#2c3e50; }
+        .summary-bar .label { font-weight:bold; }
+        .summary-bar .value { font-weight:bold; color:#1e5e2f; }
 
         table { width:100%; border-collapse: collapse; margin-top: 15px; background: white; }
-        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 15px; }
         th { background: #34495e; color: white; }
 
         .duration-cell { background: #ecf0f1; width: 70px; text-align:center; }
-        .duration-cell input { text-align:center; width:100%; background: transparent; border: none; outline: none; }
+        .duration-cell input { text-align:center; width:100%; background: transparent; border: none; outline: none; font-size: 15px; }
         .time-cell { background: #ecf0f1; }
         .task-cell { background: white; text-align:left; }
-        .drag-handle { cursor: move; font-size: 18px; color: #95a5a6; user-select: none; }
-        .drag-handle:hover { color: #34495e; }
 
-        .task-input { background: transparent; border: none; outline: none; width: 100%; color:#2c3e50; font-size:14px; padding:8px; }
-
-        .task-pill { display:block; width:100%; border-radius:6px; padding:2px 5px; font-size:14px; font-weight:500; box-sizing:border-box; }
-
-        .btn-action { margin-left:10px; }
+        .task-input { background: transparent; border: none; outline: none; width: 100%; color:#2c3e50; font-size:15px; padding:8px; }
 
         #scheduleBody tr.dragging { opacity: 0.5; }
         #scheduleBody tr.drag-over { border-top: 3px solid #3498db; }
@@ -58,15 +53,12 @@
         tr.active .time-cell { background:#FFF7E6 !important; font-weight:700; }
         
         tr.meal-row .task-cell { background:#F3E8FF !important; }
-        
-        tr.completed-row .task-cell { background:#f5f5f5 !important; }
-        tr.active .task-cell { background:#FFF9E6 !important; }
 
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
         .modal.show { display: flex; align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-header h2 { margin: 0; color: #2c3e50; }
+        .modal-header h2 { margin: 0; color: #2c3e50; font-size: 18px; }
         .modal-close { cursor: pointer; font-size: 28px; color: #95a5a6; line-height: 1; }
         .modal-close:hover { color: #34495e; }
         .modal-body { margin-bottom: 20px; }
@@ -77,17 +69,22 @@
         .template-name { font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
         .template-info { font-size: 12px; color: #7f8c8d; }
 
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; font-size: 14px; }
+        .form-group input[type="number"] { width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .form-group input[type="text"], .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .form-group textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+        
+        .alarm-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .alarm-toggle { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+        .alarm-toggle input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .alarm-info { margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 13px; color: #1565c0; line-height: 1.6; }
 
         @media (max-width: 720px){ 
-            th, td { padding:4px; font-size:13px; } 
-            .task-pill { padding:2px 5px; } 
-            .start-time-input input { width:120px; }
+            th, td { padding:6px; font-size:14px; } 
             button { padding: 6px 10px; font-size: 11px; }
             .modal-content { padding: 20px; }
+            .summary-bar { flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
@@ -95,32 +92,15 @@
 <div class="container">
     <h1>📅 일정관리 시스템</h1>
 
-    <div style="background:#E8F5E9; padding:12px 15px; border-radius:8px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:14px; color:#2c3e50;">
-            <span style="font-weight:bold;">업무:</span> 
-            <span id="workHours" style="font-weight:bold; color:#1e5e2f;">0시간</span>
-            <span style="color:#7f8c8d; font-size:12px; margin-left:8px;">(점심, 저녁식사 제외)</span>
-        </div>
-    </div>
-
-    <div class="start-time-input">
-        <label>시작시간:</label>
-        <input type="text" id="startTime" value="9:00" onchange="updateAllTimes()" placeholder="예: 9:00" />
-    </div>
-
     <div class="row space">
         <div class="row">
-            <button class="btn-soft-green" onclick="addRow()">➕ 행 추가</button>
-            <button class="btn-soft-violet" onclick="resetChecks()">✅ 체크 초기화</button>
             <button class="btn-soft-pink" onclick="openTemplateModal()">📋 템플릿</button>
             <button class="btn-soft-blue" onclick="openAlarmModal()">🔔 알람설정</button>
         </div>
         <div class="spacer"></div>
         <div class="row">
-            <button class="btn-soft-orange" onclick="clearData()">🗑️ 초기화</button>
-            <button class="btn-soft-blue" onclick="exportAll()">📤 내보내기</button>
-            <button class="btn-soft-violet" onclick="document.getElementById('importFile').click()">📥 불러오기</button>
-            <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importAll(event)" />
+            <button class="btn-soft-violet" onclick="undoDelete()">↩️ 이전</button>
+            <button class="btn-soft-green" onclick="copyWorkContent()">📋 업무내용</button>
         </div>
     </div>
 
@@ -130,12 +110,16 @@
                 <th style="width:70px;">시간 단위</th>
                 <th style="width:120px;">시간</th>
                 <th>할일</th>
-                <th style="width:50px;">완료</th>
-                <th style="width:150px;">작업</th>
             </tr>
         </thead>
         <tbody id="scheduleBody"></tbody>
     </table>
+
+    <div class="summary-bar">
+        <span><span class="label">남은 시간:</span> <span class="value" id="remainingTime">0시간</span></span>
+        <span style="color:#ddd;">|</span>
+        <span><span class="label">총 업무:</span> <span class="value" id="workHours">0시간</span></span>
+    </div>
 </div>
 
 <div id="templateModal" class="modal">
@@ -177,22 +161,25 @@
             <span class="modal-close" onclick="closeAlarmModal()">&times;</span>
         </div>
         <div class="modal-body">
-            <div class="form-group">
-                <label>
+            <div class="alarm-section">
+                <label class="alarm-toggle">
                     <input type="checkbox" id="alarmEnabled" onchange="toggleAlarm(this.checked)">
-                    알람 활성화
+                    <span style="font-weight:600;">알람 활성화</span>
                 </label>
             </div>
+            
             <div class="form-group">
                 <label>종료 몇 분 전에 알림</label>
-                <input type="number" id="alarmMinutes" value="5" min="1" max="60" style="width:100px;" onchange="saveAlarmSettings()">
-                <span style="margin-left:5px;">분</span>
+                <input type="number" id="alarmMinutes" value="5" min="1" max="60" onchange="saveAlarmSettings()">
+                <span style="margin-left:8px; color:#7f8c8d;">분</span>
             </div>
-            <div style="margin-top:20px;">
-                <button class="btn-soft-blue" onclick="testAlarm()" style="width:100%;">🔔 알람 테스트</button>
-            </div>
-            <div style="margin-top:10px; padding:10px; background:#f8f9fa; border-radius:6px; font-size:12px; color:#7f8c8d;">
-                💡 알람을 받으려면 브라우저 알림 권한이 필요합니다.
+
+            <button class="btn-soft-blue" onclick="testAlarm()" style="width:100%; padding:12px; font-size:14px;">🔔 알람 테스트</button>
+            
+            <div class="alarm-info">
+                💡 알람을 받으려면 브라우저 알림 권한이 필요합니다.<br>
+                • 시작 알림: 각 할일 시작 시점<br>
+                • 종료 알림: 설정한 시간 전
             </div>
         </div>
         <div class="modal-footer">
@@ -208,17 +195,17 @@ let draggedIndex = null;
 let alarmSettings = { enabled: false, minutesBefore: 5 };
 let notifiedTasks = new Set();
 let alarmCheckInterval = null;
+let deletedHistory = [];
+const START_TIME = "9:00";
 
 function loadData(){
     const saved = localStorage.getItem('scheduleData');
-    const savedTime = localStorage.getItem('startTime');
     const savedTemplates = localStorage.getItem('templates');
     const savedAlarmSettings = localStorage.getItem('alarmSettings');
     
     if(saved){ schedules = JSON.parse(saved); } 
-    else { schedules = [{duration:1, task:'', completed:false}]; }
+    else { schedules = [{duration:1, task:''}]; }
     
-    if(savedTime){ document.getElementById('startTime').value = savedTime; }
     if(savedTemplates){ templates = JSON.parse(savedTemplates); }
     
     if(savedAlarmSettings){
@@ -234,7 +221,6 @@ function loadData(){
 
 function saveData(){
     localStorage.setItem('scheduleData', JSON.stringify(schedules));
-    localStorage.setItem('startTime', document.getElementById('startTime').value);
     localStorage.setItem('templates', JSON.stringify(templates));
     localStorage.setItem('alarmSettings', JSON.stringify(alarmSettings));
 }
@@ -252,7 +238,7 @@ function formatTime(h){
 function nowInHours(){ const n = new Date(); return n.getHours() + n.getMinutes()/60; }
 
 function calculateTimes(){
-    let cur = parseTime(document.getElementById('startTime').value);
+    let cur = parseTime(START_TIME);
     schedules.forEach(s => { 
         s.start = formatTime(cur); 
         s.startNum = cur; 
@@ -264,7 +250,7 @@ function calculateTimes(){
 
 function renderTable(){
     calculateTimes();
-    updateWorkHoursSummary();
+    updateSummary();
     const tbody = document.getElementById('scheduleBody');
     tbody.innerHTML = '';
     const nowH = nowInHours();
@@ -274,10 +260,9 @@ function renderTable(){
         tr.draggable = true;
         tr.dataset.index = i;
         
-        const isMeal = /점심|점심식사|저녁|저녁식사/i.test(s.task);
+        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
         if(isMeal) tr.classList.add('meal-row');
         if(nowH >= s.startNum && nowH < s.endNum) tr.classList.add('active');
-        if(s.completed) tr.classList.add('completed-row');
 
         const d = document.createElement('td'); 
         d.className = 'duration-cell'; 
@@ -293,14 +278,6 @@ function renderTable(){
         task.className = 'task-cell';
         task.innerHTML = `<input class='task-input' type='text' value='${s.task || ''}' oninput='updateTaskInput(${i}, this.value)' onblur='updateTask(${i}, this.value)' onkeydown='handleTaskKeyDown(event, ${i})'>`;
         tr.appendChild(task);
-        
-        const c = document.createElement('td'); 
-        c.innerHTML = `<input type='checkbox' ${s.completed ? 'checked' : ''} onchange='toggleCompleted(${i}, this.checked)'>`;
-        tr.appendChild(c);
-
-        const ops = document.createElement('td');
-        ops.innerHTML = `<button class='btn-soft-blue' onclick='copyRow(${i})'>복사</button><button class='btn-danger btn-action' onclick='deleteRow(${i})'>삭제</button>`;
-        tr.appendChild(ops);
         
         tr.addEventListener('dragstart', handleDragStart);
         tr.addEventListener('dragover', handleDragOver);
@@ -344,7 +321,6 @@ function handleDragEnd(e){
 function updateDuration(i, v){ schedules[i].duration = parseFloat(v) || 0.5; updateAllTimes(); }
 function updateTask(i, v){ schedules[i].task = v; saveData(); }
 function updateTaskInput(i, v){ schedules[i].task = v; saveData(); }
-function toggleCompleted(i, ch){ schedules[i].completed = !!ch; saveData(); renderTable(); }
 
 function handleTaskKeyDown(event, currentIndex){
     // Ctrl + D: 현재 행 복사
@@ -359,17 +335,16 @@ function handleTaskKeyDown(event, currentIndex){
     // Ctrl + Backspace: 현재 행 삭제
     if(event.ctrlKey && event.key === 'Backspace'){
         event.preventDefault();
-        if(schedules.length === 1){
-            alert('최소 1행 필요');
-            return;
-        }
-        schedules.splice(currentIndex, 1);
-        updateAllTimes();
-        setTimeout(() => {
-            const inputs = document.querySelectorAll('.task-input');
-            const focusIndex = Math.min(currentIndex, inputs.length - 1);
-            if(inputs[focusIndex]) inputs[focusIndex].focus();
-        }, 0);
+        deleteCurrentRow(currentIndex);
+        return;
+    }
+    
+    // Ctrl + Enter: 현재 행 아래에 새 행 추가
+    if(event.ctrlKey && event.key === 'Enter'){
+        event.preventDefault();
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        addRowBelow(currentIndex);
         return;
     }
     
@@ -416,80 +391,120 @@ function handleTaskKeyDown(event, currentIndex){
     }
 }
 
-function addRow(){ schedules.push({duration: 1, task: '', completed: false}); updateAllTimes(); }
-
-function deleteRow(i){ 
-    if(schedules.length === 1){ alert('최소 1행 필요'); return; } 
-    schedules.splice(i, 1); 
-    updateAllTimes(); 
-}
-
 function copyRow(i){ 
     const s = schedules[i]; 
-    schedules.splice(i + 1, 0, {duration: s.duration, task: '', completed: false}); 
+    schedules.splice(i + 1, 0, {duration: s.duration, task: ''}); 
     updateAllTimes(); 
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.task-input');
+        if(inputs[i + 1]) inputs[i + 1].focus();
+    }, 0);
 }
 
-function resetChecks(){ schedules.forEach(s => s.completed = false); saveData(); renderTable(); }
+function deleteCurrentRow(currentIndex){
+    if(schedules.length === 1){
+        return;
+    }
+    deletedHistory.push({
+        index: currentIndex,
+        data: JSON.parse(JSON.stringify(schedules[currentIndex]))
+    });
+    schedules.splice(currentIndex, 1);
+    updateAllTimes();
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.task-input');
+        const focusIndex = Math.min(currentIndex, inputs.length - 1);
+        if(inputs[focusIndex]) inputs[focusIndex].focus();
+    }, 0);
+}
+
+function addRowBelow(currentIndex){
+    schedules.splice(currentIndex + 1, 0, {duration: 1, task: ''});
+    updateAllTimes();
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.task-input');
+        if(inputs[currentIndex + 1]) inputs[currentIndex + 1].focus();
+    }, 0);
+}
+
+function undoDelete(){
+    if(deletedHistory.length === 0){
+        return;
+    }
+    const last = deletedHistory.pop();
+    schedules.splice(last.index, 0, last.data);
+    updateAllTimes();
+}
+
+function copyWorkContent(){
+    let content = '';
+    schedules.forEach(s => {
+        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
+        if(!isMeal && s.task.trim()){
+            content += `- ${s.task}(${s.duration}시간)\n`;
+        }
+    });
+    
+    if(!content){
+        return;
+    }
+    
+    navigator.clipboard.writeText(content).then(() => {
+        // 복사 완료 (알림 없음)
+    }).catch(err => {
+        console.error('복사 실패:', err);
+    });
+}
 
 function updateAllTimes(){ 
     calculateTimes(); 
     renderTable(); 
     saveData(); 
-    autoCheckByNow();
     notifiedTasks.clear();
 }
 
-function autoCheckByNow(){ 
-    ensureDailyReset(); 
-    const n = nowInHours(); 
-    let changed = false; 
-    calculateTimes(); 
-    schedules.forEach(s => { 
-        if(!s.completed && n >= s.endNum){ s.completed = true; changed = true; } 
-    }); 
-    if(changed){ saveData(); renderTable(); } 
+function updateSummary(){
+    let totalHours = 0;
+    let workHours = 0;
+    
+    schedules.forEach(s => {
+        totalHours += s.duration;
+        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
+        if(!isMeal){
+            workHours += s.duration;
+        }
+    });
+    
+    const remaining = 24 - totalHours;
+    
+    document.getElementById('remainingTime').textContent = formatHours(remaining);
+    document.getElementById('workHours').textContent = formatHours(workHours);
+}
+
+function formatHours(totalHours){
+    const hours = Math.floor(totalHours);
+    const minutes = Math.round((totalHours - hours) * 60);
+    
+    if(hours > 0 && minutes > 0){
+        return `${hours}시간 ${minutes}분`;
+    } else if(hours > 0){
+        return `${hours}시간`;
+    } else if(minutes > 0){
+        return `${minutes}분`;
+    } else {
+        return `0시간`;
+    }
 }
 
 function ensureDailyReset(){
     const today = new Date().toDateString();
     const last = localStorage.getItem('lastReset');
     if(last !== today){
-        schedules.forEach(s => { s.completed = false; });
         localStorage.setItem('lastReset', today);
         notifiedTasks.clear();
         saveData();
         renderTable();
     }
-}
-
-function clearData(){ if(confirm('모든 데이터를 초기화하시겠습니까?')){ localStorage.clear(); location.reload(); } }
-
-function exportAll(){ 
-    const data = { schedules, templates, startTime: document.getElementById('startTime').value, exportDate: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'}); 
-    const a = document.createElement('a'); 
-    a.href = URL.createObjectURL(blob); 
-    a.download = 'schedule_backup.json'; 
-    a.click(); 
-}
-
-function importAll(e){ 
-    const f = e.target.files[0]; 
-    if(!f) return; 
-    const r = new FileReader(); 
-    r.onload = () => { 
-        try {
-            const data = JSON.parse(r.result);
-            if(data.schedules && Array.isArray(data.schedules)) schedules = data.schedules;
-            if(data.templates && Array.isArray(data.templates)) templates = data.templates;
-            if(data.startTime) document.getElementById('startTime').value = data.startTime;
-            saveData(); 
-            renderTable();
-            alert('불러오기 완료!');
-        } catch(err) { alert('파일 형식이 올바르지 않습니다.'); }
-    }; 
-    r.readAsText(f); 
 }
 
 function openTemplateModal(){ renderTemplateList(); document.getElementById('templateModal').classList.add('show'); }
@@ -505,7 +520,6 @@ function saveTemplate(){
         id: Date.now(),
         name: name,
         schedules: JSON.parse(JSON.stringify(schedules)),
-        startTime: document.getElementById('startTime').value,
         createdAt: new Date().toISOString()
     });
     
@@ -537,7 +551,6 @@ function loadTemplate(index){
     if(confirm('현재 일정을 템플릿으로 교체하시겠습니까?')){
         const template = templates[index];
         schedules = JSON.parse(JSON.stringify(template.schedules));
-        document.getElementById('startTime').value = template.startTime;
         updateAllTimes();
         closeTemplateModal();
         alert('템플릿이 적용되었습니다!');
@@ -545,32 +558,6 @@ function loadTemplate(index){
 }
 
 function deleteTemplate(index){ if(confirm('이 템플릿을 삭제하시겠습니까?')){ templates.splice(index, 1); saveData(); renderTemplateList(); } }
-
-function updateWorkHoursSummary(){
-    let totalHours = 0;
-    schedules.forEach(s => {
-        const isMeal = /점심|점심식사|저녁|저녁식사/i.test(s.task);
-        if(!isMeal){
-            totalHours += s.duration;
-        }
-    });
-    
-    const hours = Math.floor(totalHours);
-    const minutes = Math.round((totalHours - hours) * 60);
-    
-    let timeText = '';
-    if(hours > 0 && minutes > 0){
-        timeText = `${hours}시간 ${minutes}분`;
-    } else if(hours > 0){
-        timeText = `${hours}시간`;
-    } else if(minutes > 0){
-        timeText = `${minutes}분`;
-    } else {
-        timeText = `0시간`;
-    }
-    
-    document.getElementById('workHours').textContent = timeText;
-}
 
 async function initAlarmSystem(){
     if('Notification' in window && Notification.permission === 'default'){
@@ -594,14 +581,11 @@ function checkAndNotify(){
     calculateTimes();
     
     schedules.forEach((s, i) => {
-        if(s.completed) return;
-        
         // 시작 시간 알림
         const startTaskKey = `start-${s.start}-${s.end}-${s.task}`;
         if(nowH >= s.startNum && nowH < s.startNum + 0.02 && !notifiedTasks.has(startTaskKey)){
             notifiedTasks.add(startTaskKey);
             showStartNotification(s, i);
-            console.log(`시작 알람 발송: ${s.task}, 시작시간: ${s.start}, 현재시간: ${formatTime(nowH)}`);
         }
         
         // 종료 전 알림
@@ -611,7 +595,6 @@ function checkAndNotify(){
         if(nowH >= alarmTime && nowH < s.endNum && !notifiedTasks.has(endTaskKey)){
             notifiedTasks.add(endTaskKey);
             showEndNotification(s, i);
-            console.log(`종료 알람 발송: ${s.task}, 종료시간: ${s.end}, 알람시간: ${formatTime(alarmTime)}, 현재시간: ${formatTime(nowH)}`);
         }
     });
 }
@@ -680,7 +663,16 @@ async function testAlarm(){
     notification.onclick = function(){ window.focus(); this.close(); };
 }
 
-setInterval(autoCheckByNow, 60000);
+setInterval(() => {
+    const nowH = nowInHours();
+    calculateTimes();
+    schedules.forEach(s => {
+        if(nowH >= s.startNum && nowH < s.endNum){
+            renderTable();
+        }
+    });
+}, 60000);
+
 loadData();
 </script>
 </body>
