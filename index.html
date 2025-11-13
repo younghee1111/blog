@@ -282,7 +282,7 @@ function renderTable(){
         
         const task = document.createElement('td'); 
         task.className = 'task-cell';
-        task.innerHTML = `<input class='task-input' type='text' value='${s.task || ''}' oninput='updateTaskInput(${i}, this.value)' onkeydown='handleTaskKeyDown(event, ${i})'>`;
+        task.innerHTML = `<input class='task-input' type='text' value='${s.task || ''}' oninput='updateTaskInput(${i}, this.value)' onblur='updateTask(${i}, this.value)' onkeydown='handleTaskKeyDown(event, ${i})'>`;
         tr.appendChild(task);
         
         const c = document.createElement('td'); 
@@ -340,6 +340,10 @@ function toggleCompleted(i, ch){ schedules[i].completed = !!ch; saveData(); rend
 function handleTaskKeyDown(event, currentIndex){
     if(event.key === 'ArrowDown'){
         event.preventDefault();
+        // 현재 값 저장
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        
         const nextIndex = currentIndex + 1;
         if(nextIndex < schedules.length){
             setTimeout(() => {
@@ -349,6 +353,10 @@ function handleTaskKeyDown(event, currentIndex){
         }
     } else if(event.key === 'ArrowUp'){
         event.preventDefault();
+        // 현재 값 저장
+        schedules[currentIndex].task = event.target.value;
+        saveData();
+        
         const prevIndex = currentIndex - 1;
         if(prevIndex >= 0){
             setTimeout(() => {
@@ -531,7 +539,7 @@ function showNotification(currentTask, currentIndex){
     const nextTaskText = nextTask ? (nextTask.task || '할일 없음') : '마지막 일정';
     
     const notification = new Notification('📅 일정 알림', {
-        body: `종료 ${alarmSettings.minutesBefore}분 전\n\n다음 할일: ${nextTaskText}`,
+        body: `종료 ${alarmSettings.minutesBefore}분 전\n[다음 할일] ${nextTaskText}`,
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
         tag: 'schedule-alarm',
         requireInteraction: false,
