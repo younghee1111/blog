@@ -539,7 +539,7 @@ function showNotification(currentTask, currentIndex){
     const nextTaskText = nextTask ? (nextTask.task || '할일 없음') : '마지막 일정';
     
     const notification = new Notification('📅 5분 전 종료', {
-        body: `[다음 할일]/n${nextTaskText}`,
+        body: `[다음 할일]\n${nextTaskText}`,
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
         tag: 'schedule-alarm',
         requireInteraction: false,
