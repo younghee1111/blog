@@ -584,7 +584,7 @@ function addMemoItem(){
     const text = input.value.trim();
     if(!text) return;
     
-    memos.push({
+    memos.unshift({
         id: Date.now(),
         text,
         color: selectedMemoColor,
