@@ -160,6 +160,7 @@
             white-space: pre-wrap;
             word-break: break-word;
             cursor: move;
+            border: 2px solid transparent;
         }
         
         .memo-item:hover {
@@ -169,10 +170,6 @@
         
         .memo-item.dragging {
             opacity: 0.5;
-        }
-        
-        .memo-item.drag-over {
-            border-top: 3px solid #3498db;
         }
         
         .memo-delete {
@@ -452,8 +449,12 @@
 </div>
 
 <script>
+/* ------------------------------
+   전역 상태
+------------------------------ */
 let schedules = [];
 let templates = [];
+let draggedIndex = null;
 let alarmSettings = { enabled: false, minutesBefore: 5 };
 let notifiedTasks = new Set();
 let alarmCheckInterval = null;
@@ -461,32 +462,66 @@ let deletedHistory = [];
 let memos = [];
 let selectedMemoColor = '#FFF9E6';
 let draggedMemoIndex = null;
-let draggedRowId = null;
 const START_TIME = "9:00";
+const WINDOW = 0.05; // 알람 허용 구간(약 3분)
 
-/* ====== 공통 유틸 ====== */
-function generateScheduleId(){
-    return 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+/* ------------------------------
+   공통 유틸
+------------------------------ */
+function parseTime(t){ const [h, m] = t.split(':').map(Number); return h + m/60; }
+
+function formatTime(h){
+    const hours = Math.floor(h);
+    const minutes = Math.round((h - hours) * 60);
+    let displayHour = hours % 12; 
+    if(displayHour === 0) displayHour = 12;
+    return `${displayHour}:${minutes.toString().padStart(2,'0')}`;
 }
 
+function nowInHours(){ const n = new Date(); return n.getHours() + n.getMinutes()/60; }
+
+function formatHours(totalHours){
+    const hours = Math.floor(totalHours);
+    const minutes = Math.round((totalHours - hours) * 60);
+    
+    if(hours > 0 && minutes > 0){
+        return `${hours}시간 ${minutes}분`;
+    } else if(hours > 0){
+        return `${hours}시간`;
+    } else if(minutes > 0){
+        return `${minutes}분`;
+    } else {
+        return `0시간`;
+    }
+}
+
+/* ------------------------------
+   일정 객체 생성 + ID 보장
+------------------------------ */
 function createSchedule(duration = 1, task = '', completed = false){
     return {
-        id: generateScheduleId(),
+        id: Date.now() + Math.random(),
         duration,
         task,
-        completed
+        completed,
+        start: '',
+        end: '',
+        startNum: 0,
+        endNum: 0
     };
 }
 
 function ensureScheduleIds(){
     schedules.forEach(s => {
         if(!s.id){
-            s.id = generateScheduleId();
+            s.id = Date.now() + Math.random();
         }
     });
 }
 
-/* ====== 데이터 로드/저장 ====== */
+/* ------------------------------
+   데이터 로드/저장
+------------------------------ */
 function loadData(){
     const saved = localStorage.getItem('scheduleData');
     const savedTemplates = localStorage.getItem('templates');
@@ -496,9 +531,8 @@ function loadData(){
     if(saved){ 
         schedules = JSON.parse(saved); 
     } else { 
-        schedules = [createSchedule(1, '', false)];
+        schedules = [ createSchedule(1, '', false) ];
     }
-
     ensureScheduleIds();
     
     if(savedTemplates){ templates = JSON.parse(savedTemplates); }
@@ -511,12 +545,13 @@ function loadData(){
     
     if(savedMemos){
         memos = JSON.parse(savedMemos);
-        renderMemos();
     }
     
     ensureDailyReset();
+    renderMemos();
     renderTable();
     initAlarmSystem();
+    updateStats();
 }
 
 function saveData(){
@@ -526,7 +561,9 @@ function saveData(){
     localStorage.setItem('dailyMemos', JSON.stringify(memos));
 }
 
-/* ====== 메모 ====== */
+/* ------------------------------
+   메모 관련
+------------------------------ */
 function setSelectedColor(element){
     document.querySelectorAll('.color-option').forEach(opt => {
         opt.classList.remove('active');
@@ -545,12 +582,11 @@ function handleMemoKeyDown(event){
 function addMemoItem(){
     const input = document.getElementById('memoInput');
     const text = input.value.trim();
-    
     if(!text) return;
     
-    memos.unshift({
+    memos.push({
         id: Date.now(),
-        text: text,
+        text,
         color: selectedMemoColor,
         createdAt: new Date().toISOString()
     });
@@ -585,9 +621,7 @@ function renderMemos(){
         div.draggable = true;
         div.dataset.memoIndex = index;
         div.style.background = memo.color;
-        
-        const textNode = document.createTextNode(memo.text);
-        div.appendChild(textNode);
+        div.appendChild(document.createTextNode(memo.text));
         
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'memo-delete';
@@ -599,20 +633,13 @@ function renderMemos(){
         div.appendChild(deleteBtn);
         
         div.addEventListener('dragstart', function(e) {
-            draggedMemoIndex = parseInt(div.dataset.memoIndex, 10);
+            draggedMemoIndex = index;
             div.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         });
         
         div.addEventListener('dragover', function(e) {
             e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            
-            const allMemos = container.querySelectorAll('.memo-item');
-            allMemos.forEach(item => {
-                item.classList.remove('drag-over');
-            });
-            div.classList.add('drag-over');
         });
         
         div.addEventListener('drop', function(e) {
@@ -620,35 +647,27 @@ function renderMemos(){
             e.stopPropagation();
             
             const dropIndex = parseInt(div.dataset.memoIndex, 10);
-            if(draggedMemoIndex === null || draggedMemoIndex === dropIndex){
-                return;
-            }
+            if(draggedMemoIndex === null || draggedMemoIndex === dropIndex) return;
             
             const rect = div.getBoundingClientRect();
             const isAfter = e.clientY > rect.top + rect.height / 2;
             
             const memoItem = memos.splice(draggedMemoIndex, 1)[0];
             let targetIndex = dropIndex;
-            if(isAfter){
-                targetIndex = dropIndex + 1;
-            }
-            if(draggedMemoIndex < targetIndex){
-                targetIndex--;
-            }
+            if(isAfter) targetIndex = dropIndex + 1;
+            if(draggedMemoIndex < targetIndex) targetIndex--;
             memos.splice(targetIndex, 0, memoItem);
             
             saveData();
             renderMemos();
         });
         
-        div.addEventListener('dragleave', function(e) {
-            div.classList.remove('drag-over');
-        });
+        div.addEventListener('dragleave', function() {});
         
-        div.addEventListener('dragend', function(e) {
+        div.addEventListener('dragend', function() {
             const allMemos = container.querySelectorAll('.memo-item');
             allMemos.forEach(item => {
-                item.classList.remove('dragging', 'drag-over');
+                item.classList.remove('dragging');
             });
             draggedMemoIndex = null;
         });
@@ -657,19 +676,9 @@ function renderMemos(){
     });
 }
 
-/* ====== 시간/일정 계산 ====== */
-function parseTime(t){ const [h, m] = t.split(':').map(Number); return h + m/60; }
-
-function formatTime(h){
-    const hours = Math.floor(h);
-    const minutes = Math.round((h - hours) * 60);
-    let displayHour = hours % 12; 
-    if(displayHour === 0) displayHour = 12;
-    return `${displayHour}:${minutes.toString().padStart(2,'0')}`;
-}
-
-function nowInHours(){ const n = new Date(); return n.getHours() + n.getMinutes()/60; }
-
+/* ------------------------------
+   일정 계산 / 렌더링
+------------------------------ */
 function calculateTimes(){
     let cur = parseTime(START_TIME);
     schedules.forEach(s => { 
@@ -681,7 +690,6 @@ function calculateTimes(){
     });
 }
 
-/* ====== 테이블 렌더링 ====== */
 function renderTable(){
     calculateTimes();
     updateStats();
@@ -715,12 +723,7 @@ function renderTable(){
         durationInput.step = '0.5';
         durationInput.value = s.duration;
         durationInput.addEventListener('change', function() { 
-            const row = this.closest('tr');
-            if(!row) return;
-            const rowId = row.dataset.id;
-            const idx = schedules.findIndex(x => x.id === rowId);
-            if(idx === -1) return;
-            schedules[idx].duration = parseFloat(this.value) || 0.5;
+            s.duration = parseFloat(this.value) || 0.5;
             updateAllTimes();
         });
         d.appendChild(durationInput);
@@ -739,104 +742,60 @@ function renderTable(){
         input.value = s.task || '';
         
         input.addEventListener('input', function() { 
-            const row = this.closest('tr');
-            if(!row) return;
-            const rowId = row.dataset.id;
-            const idx = schedules.findIndex(x => x.id === rowId);
-            if(idx === -1) return;
-            schedules[idx].task = this.value;
+            s.task = this.value;
         });
         
         input.addEventListener('blur', function() { 
-            const row = this.closest('tr');
-            if(!row) return;
-            const rowId = row.dataset.id;
-            const idx = schedules.findIndex(x => x.id === rowId);
-            if(idx === -1) return;
-            schedules[idx].task = this.value;
+            s.task = this.value;
             saveData();
         });
         
         input.addEventListener('keydown', function(e) { 
-            const row = this.closest('tr');
-            if(!row){
-                return;
-            }
-            const rowId = row.dataset.id;
-            let currentIndex = schedules.findIndex(x => x.id === rowId);
-
-            if(currentIndex === -1){
-                if(e.ctrlKey && e.key === 'Backspace'){
-                    e.preventDefault();
-                    console.error("삭제 대상 스케줄을 찾을 수 없습니다.");
-                }
-                return;
-            }
-
-            /* Ctrl + Backspace: 현재 행 삭제 */
-            if(e.ctrlKey && e.key === 'Backspace'){
-                e.preventDefault();
-
-                if(schedules.length === 1) return;
-
-                if(currentIndex < 0 || currentIndex >= schedules.length){
-                    console.error(`잘못된 인덱스(${currentIndex})로 삭제를 시도했습니다.`);
-                    return;
-                }
-
-                deletedHistory.push({
-                    id: schedules[currentIndex].id,
-                    index: currentIndex,
-                    data: JSON.parse(JSON.stringify(schedules[currentIndex]))
-                });
-
-                schedules.splice(currentIndex, 1);
-                updateAllTimes();
-
-                setTimeout(() => {
-                    const newInputs = document.querySelectorAll('.task-input');
-                    const focusIndex = Math.min(currentIndex, newInputs.length - 1);
-                    
-                    if(newInputs[focusIndex]) {
-                        newInputs[focusIndex].focus();
-                    } else if(newInputs.length > 0) {
-                        newInputs[newInputs.length - 1].focus();
-                    }
-                }, 50);
-                return;
-            }
-
-            /* Ctrl + D: 현재 행 복사 (같은 duration, 빈 task) */
+            // Ctrl + D: 현재 행 복사
             if(e.ctrlKey && e.key === 'd'){
                 e.preventDefault();
-                const base = schedules[currentIndex];
-                schedules.splice(currentIndex + 1, 0, createSchedule(base.duration, '', false));
+                s.task = this.value;
+                const newSchedule = createSchedule(s.duration, '', false);
+                const idx = schedules.indexOf(s);
+                schedules.splice(idx + 1, 0, newSchedule);
                 updateAllTimes(); 
                 setTimeout(() => {
                     const inputs = document.querySelectorAll('.task-input');
-                    if(inputs[currentIndex + 1]) inputs[currentIndex + 1].focus();
+                    if(inputs[idx + 1]) inputs[idx + 1].focus();
                 }, 50);
                 return;
             }
             
-            /* Ctrl + Enter: 현재 행 아래 새 행 */
+            // Ctrl + Backspace: 현재 행 삭제 (id 기반)
+            if(e.ctrlKey && e.key === 'Backspace'){
+                e.preventDefault();
+                deleteRowById(s.id);
+                return;
+            }
+            
+            // Ctrl + Enter: 현재 행 아래에 새 행 추가
             if(e.ctrlKey && e.key === 'Enter'){
                 e.preventDefault();
-                schedules.splice(currentIndex + 1, 0, createSchedule(1, '', false));
+                s.task = this.value;
+                const idx = schedules.indexOf(s);
+                const newSchedule = createSchedule(1, '', false);
+                schedules.splice(idx + 1, 0, newSchedule);
                 updateAllTimes();
                 setTimeout(() => {
                     const inputs = document.querySelectorAll('.task-input');
-                    if(inputs[currentIndex + 1]) inputs[currentIndex + 1].focus();
+                    if(inputs[idx + 1]) inputs[idx + 1].focus();
                 }, 50);
                 return;
             }
             
-            /* Enter: 다음 행으로 포커스 */
+            // Enter: 다음 할일로 이동
             if(e.key === 'Enter'){
                 e.preventDefault();
+                s.task = this.value;
                 saveData();
                 
-                const nextIndex = currentIndex + 1;
+                const idx = schedules.indexOf(s);
+                const nextIndex = idx + 1;
                 if(nextIndex < schedules.length){
                     setTimeout(() => {
                         const inputs = document.querySelectorAll('.task-input');
@@ -848,9 +807,11 @@ function renderTable(){
             
             if(e.key === 'ArrowDown'){
                 e.preventDefault();
+                s.task = this.value;
                 saveData();
                 
-                const nextIndex = currentIndex + 1;
+                const idx = schedules.indexOf(s);
+                const nextIndex = idx + 1;
                 if(nextIndex < schedules.length){
                     setTimeout(() => {
                         const inputs = document.querySelectorAll('.task-input');
@@ -859,9 +820,11 @@ function renderTable(){
                 }
             } else if(e.key === 'ArrowUp'){
                 e.preventDefault();
+                s.task = this.value;
                 saveData();
                 
-                const prevIndex = currentIndex - 1;
+                const idx = schedules.indexOf(s);
+                const prevIndex = idx - 1;
                 if(prevIndex >= 0){
                     setTimeout(() => {
                         const inputs = document.querySelectorAll('.task-input');
@@ -883,9 +846,8 @@ function renderTable(){
     });
 }
 
-/* ====== 행 드래그(일정 순서 변경) ====== */
 function handleDragStart(e){
-    draggedRowId = this.dataset.id;
+    draggedIndex = parseInt(this.dataset.index, 10);
     this.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
 }
@@ -899,18 +861,12 @@ function handleDragOver(e){
 
 function handleDrop(e){
     if(e.stopPropagation) e.stopPropagation();
-    const dropId = this.dataset.id;
-    if(!draggedRowId || draggedRowId === dropId){
-        return false;
+    const dropIndex = parseInt(this.dataset.index, 10);
+    if(draggedIndex !== dropIndex){
+        const item = schedules.splice(draggedIndex, 1)[0];
+        schedules.splice(dropIndex, 0, item);
+        updateAllTimes();
     }
-    const fromIndex = schedules.findIndex(s => s.id === draggedRowId);
-    const toIndex = schedules.findIndex(s => s.id === dropId);
-    if(fromIndex === -1 || toIndex === -1){
-        return false;
-    }
-    const item = schedules.splice(fromIndex, 1)[0];
-    schedules.splice(toIndex, 0, item);
-    updateAllTimes();
     return false;
 }
 
@@ -918,15 +874,49 @@ function handleDragEnd(e){
     document.querySelectorAll('#scheduleBody tr').forEach(tr => {
         tr.classList.remove('dragging', 'drag-over');
     });
-    draggedRowId = null;
 }
 
-/* ====== 기타 작업 유틸 ====== */
+/* ------------------------------
+   삭제 / Undo
+------------------------------ */
+function deleteRowById(rowId){
+    const index = schedules.findIndex(s => s.id === rowId);
+    if(index === -1) return;
+    if(schedules.length === 1) return;
+    
+    deletedHistory.push({
+        index,
+        data: JSON.parse(JSON.stringify(schedules[index]))
+    });
+    
+    schedules.splice(index, 1);
+    updateAllTimes();
+    
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.task-input');
+        const focusIndex = Math.min(index, inputs.length - 1);
+        if(inputs[focusIndex]) inputs[focusIndex].focus();
+    }, 50);
+}
+
+function undoDelete(){
+    if(deletedHistory.length === 0){
+        return;
+    }
+    const last = deletedHistory.pop();
+    const insertIndex = Math.min(last.index, schedules.length);
+    schedules.splice(insertIndex, 0, last.data);
+    updateAllTimes();
+}
+
+/* ------------------------------
+   기타 기능
+------------------------------ */
 function copyWorkContent(){
     let content = '';
     schedules.forEach(s => {
         const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
-        if(!isMeal && s.task && s.task.trim()){
+        if(!isMeal && s.task.trim()){
             content += `- ${s.task}(${s.duration}시간)\n`;
         }
     });
@@ -942,10 +932,10 @@ function copyWorkContent(){
 }
 
 function updateAllTimes(){ 
+    ensureScheduleIds();
     calculateTimes(); 
     renderTable(); 
     saveData(); 
-    // 알람 중복 방지 위해 여기서는 notifiedTasks.clear() 하지 않음
 }
 
 function updateStats(){
@@ -983,35 +973,21 @@ function updateStats(){
     document.getElementById('statProgress').textContent = `${progressPercent}%`;
 }
 
-function formatHours(totalHours){
-    const hours = Math.floor(totalHours);
-    const minutes = Math.round((totalHours - hours) * 60);
-    
-    if(hours > 0 && minutes > 0){
-        return `${hours}시간 ${minutes}분`;
-    } else if(hours > 0){
-        return `${hours}시간`;
-    } else if(minutes > 0){
-        return `${minutes}분`;
-    } else {
-        return `0시간`;
-    }
-}
-
-/* ====== 하루 리셋 ====== */
 function ensureDailyReset(){
     const today = new Date().toDateString();
     const last = localStorage.getItem('lastReset');
     if(last !== today){
         schedules.forEach(s => { s.completed = false; });
         localStorage.setItem('lastReset', today);
-        notifiedTasks.clear();   // 하루가 바뀌면 새로 시작
+        notifiedTasks.clear();
         saveData();
         renderTable();
     }
 }
 
-/* ====== 템플릿 ====== */
+/* ------------------------------
+   템플릿 관련
+------------------------------ */
 function openTemplateModal(){ renderTemplateList(); document.getElementById('templateModal').classList.add('show'); }
 function closeTemplateModal(){ document.getElementById('templateModal').classList.remove('show'); }
 function openSaveTemplateModal(){ document.getElementById('templateName').value = ''; document.getElementById('saveTemplateModal').classList.add('show'); }
@@ -1064,27 +1040,16 @@ function loadTemplate(index){
 }
 
 function deleteTemplate(index){ 
-    if(confirm('이 템플릿을 삭제하시겠습니까?')){
+    if(confirm('이 템플릿을 삭제하시겠습니까?')){ 
         templates.splice(index, 1); 
         saveData(); 
         renderTemplateList(); 
     } 
 }
 
-/* ====== 삭제 이전(undo) ====== */
-function undoDelete(){
-    if(deletedHistory.length === 0){
-        return;
-    }
-    const last = deletedHistory.pop(); // { id, index, data }
-    let insertIndex = last.index;
-    if(insertIndex < 0) insertIndex = 0;
-    if(insertIndex > schedules.length) insertIndex = schedules.length;
-    schedules.splice(insertIndex, 0, last.data);
-    updateAllTimes();
-}
-
-/* ====== 알람 ====== */
+/* ------------------------------
+   알람 시스템
+------------------------------ */
 async function initAlarmSystem(){
     if('Notification' in window && Notification.permission === 'default'){
         await Notification.requestPermission();
@@ -1094,8 +1059,10 @@ async function initAlarmSystem(){
 
 function startAlarmCheck(){
     if(alarmCheckInterval) clearInterval(alarmCheckInterval);
-    alarmCheckInterval = setInterval(checkAndNotify, 10000);
-    checkAndNotify();
+    alarmCheckInterval = setInterval(() => {
+        checkAndNotify(nowInHours());
+    }, 10000);
+    checkAndNotify(nowInHours());
 }
 
 function stopAlarmCheck(){ 
@@ -1105,34 +1072,41 @@ function stopAlarmCheck(){
     } 
 }
 
-function checkAndNotify(){
+function checkAndNotify(nowH){
     if(!alarmSettings.enabled || Notification.permission !== 'granted') return;
     
-    const nowH = nowInHours();
     calculateTimes();
-
-    const dayKey = new Date().toDateString(); // 날짜 단위로 키 분리
     
-    schedules.forEach((s, i) => {
+    schedules.forEach((s) => {
         if(s.completed) return;
         
-        const startTaskKey = `start-${dayKey}-${s.id}`;
-        if(nowH >= s.startNum && nowH < s.startNum + 0.02 && !notifiedTasks.has(startTaskKey)){
-            notifiedTasks.add(startTaskKey);
-            showStartNotification(s, i);
+        const startKey = `start-${s.id}`;
+        const endKey   = `end-${s.id}`;
+        
+        // 시작 알람 (시작 시점 근처에서 1번)
+        if(
+            nowH >= s.startNum &&
+            nowH <  s.startNum + WINDOW &&
+            !notifiedTasks.has(startKey)
+        ){
+            notifiedTasks.add(startKey);
+            showStartNotification(s);
         }
         
+        // 종료 알람 (종료 minutesBefore 분 전 근처에서 1번)
         const alarmTime = s.endNum - (alarmSettings.minutesBefore / 60);
-        const endTaskKey = `end-${dayKey}-${s.id}`;
-        
-        if(nowH >= alarmTime && nowH < s.endNum && !notifiedTasks.has(endTaskKey)){
-            notifiedTasks.add(endTaskKey);
-            showEndNotification(s, i);
+        if(
+            nowH >= alarmTime &&
+            nowH <  alarmTime + WINDOW &&
+            !notifiedTasks.has(endKey)
+        ){
+            notifiedTasks.add(endKey);
+            showEndNotification(s);
         }
     });
 }
 
-function showStartNotification(currentTask, currentIndex){
+function showStartNotification(currentTask){
     const notification = new Notification('🎯 할일 시작', {
         body: `[현재 할일]\n${currentTask.task || '할일 없음'}`,
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🎯</text></svg>',
@@ -1144,12 +1118,9 @@ function showStartNotification(currentTask, currentIndex){
     notification.onclick = function(){ window.focus(); this.close(); };
 }
 
-function showEndNotification(currentTask, currentIndex){
-    const nextTask = schedules[currentIndex + 1];
-    const nextTaskText = nextTask ? (nextTask.task || '할일 없음') : '마지막 일정';
-    
+function showEndNotification(currentTask){
     const notification = new Notification(`📅 ${alarmSettings.minutesBefore}분 전 종료`, {
-        body: `[다음 할일]\n${nextTaskText}`,
+        body: `[현재 할일]\n${currentTask.task || '할일 없음'}`,
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
         tag: 'schedule-end-' + Date.now(),
         requireInteraction: true,
@@ -1159,7 +1130,6 @@ function showEndNotification(currentTask, currentIndex){
     notification.onclick = function(){ window.focus(); this.close(); };
 }
 
-/* ====== 알람 설정 ====== */
 function openAlarmModal(){ document.getElementById('alarmModal').classList.add('show'); }
 function closeAlarmModal(){ document.getElementById('alarmModal').classList.remove('show'); }
 
@@ -1177,6 +1147,8 @@ function saveAlarmSettings(){
     if(alarmSettings.enabled){ 
         startAlarmCheck(); 
         alert('알람 설정이 저장되었습니다!');
+    } else {
+        stopAlarmCheck();
     }
 }
 
@@ -1199,17 +1171,22 @@ async function testAlarm(){
     notification.onclick = function(){ window.focus(); this.close(); };
 }
 
-/* ====== 주기적 하이라이트 업데이트 ====== */
+/* ------------------------------
+   주기적으로 현재 active 행 리렌더
+------------------------------ */
 setInterval(() => {
     const nowH = nowInHours();
     calculateTimes();
+    let needRender = false;
     schedules.forEach(s => {
         if(nowH >= s.startNum && nowH < s.endNum){
-            renderTable();
+            needRender = true;
         }
     });
+    if(needRender) renderTable();
 }, 60000);
 
+/* ------------------------------ */
 loadData();
 </script>
 </body>
