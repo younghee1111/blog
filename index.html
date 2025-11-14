@@ -940,8 +940,12 @@ function updateAllTimes(){
 
 function updateStats(){
     const nowH = nowInHours();
+    
+    // 남은 시간(회의/식사 포함)
     let remainingHours = 0;
     let remainingCount = 0;
+    
+    // 업무 통계(회의/식사 제외) – 기존 로직 유지
     let totalWorkHours = 0;
     let totalWorkCount = 0;
     let completedWorkHours = 0;
@@ -950,14 +954,16 @@ function updateStats(){
     schedules.forEach(s => {
         const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
         
+        // 🔹 남은 시간: 모든 일정 포함
+        if(nowH < s.endNum){
+            remainingHours += s.duration;
+            remainingCount++;
+        }
+        
+        // 🔹 업무 관련 통계: 회의/식사 제외 (예전과 동일)
         if(!isMeal){
             totalWorkHours += s.duration;
             totalWorkCount++;
-            
-            if(nowH < s.endNum){
-                remainingHours += s.duration;
-                remainingCount++;
-            }
             
             if(s.completed){
                 completedWorkHours += s.duration;
@@ -966,12 +972,17 @@ function updateStats(){
         }
     });
     
-    const progressPercent = totalWorkHours > 0 ? Math.round((completedWorkHours / totalWorkHours) * 100) : 0;
+    const progressPercent = totalWorkHours > 0 
+        ? Math.round((completedWorkHours / totalWorkHours) * 100) 
+        : 0;
     
-    document.getElementById('statRemaining').textContent = `${formatHours(remainingHours)}(${remainingCount}개)`;
-    document.getElementById('statTotal').textContent = `${formatHours(completedWorkHours)}(${completedWorkCount}개)`;
+    document.getElementById('statRemaining').textContent = 
+        `${formatHours(remainingHours)}(${remainingCount}개)`;
+    document.getElementById('statTotal').textContent = 
+        `${formatHours(completedWorkHours)}(${completedWorkCount}개)`;
     document.getElementById('statProgress').textContent = `${progressPercent}%`;
 }
+
 
 function ensureDailyReset(){
     const today = new Date().toDateString();
