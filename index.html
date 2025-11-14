@@ -149,6 +149,7 @@
         
         .memo-item {
             padding: 12px;
+            padding-right: 36px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative;
@@ -158,11 +159,20 @@
             transition: transform 0.2s;
             white-space: pre-wrap;
             word-break: break-word;
+            cursor: move;
         }
         
         .memo-item:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .memo-item.dragging {
+            opacity: 0.5;
+        }
+        
+        .memo-item.drag-over {
+            border-top: 3px solid #3498db;
         }
         
         .memo-delete {
@@ -451,6 +461,7 @@ let alarmCheckInterval = null;
 let deletedHistory = [];
 let memos = [];
 let selectedMemoColor = '#FFF9E6';
+let draggedMemoId = null;
 const START_TIME = "9:00";
 
 function loadData(){
@@ -529,23 +540,109 @@ function deleteMemoItem(id){
 
 function renderMemos(){
     const container = document.getElementById('memoList');
+    container.innerHTML = '';
     
     if(memos.length === 0){
-        container.innerHTML = '<div class="memo-empty">메모를 추가해보세요 📝</div>';
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'memo-empty';
+        emptyDiv.textContent = '메모를 추가해보세요 📝';
+        container.appendChild(emptyDiv);
         return;
     }
     
-    container.innerHTML = memos.map(memo => {
-        // HTML 특수문자만 이스케이프, 공백/줄바꿈은 유지
-        const escapedText = memo.text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+    // 최신순 정렬 (createdAt 기준)
+    const sortedMemos = [...memos].sort((a, b) => {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    
+    sortedMemos.forEach((memo) => {
+        const div = document.createElement('div');
+        div.className = 'memo-item';
+        div.draggable = true;
+        div.dataset.memoId = memo.id;
+        div.style.background = memo.color;
         
-        return `<div class="memo-item" style="background:${memo.color}">${escapedText}<button class="memo-delete" onclick="deleteMemoItem(${memo.id})">×</button></div>`;
-    }).join('');
+        // 텍스트 노드 생성
+        const textNode = document.createTextNode(memo.text);
+        div.appendChild(textNode);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'memo-delete';
+        deleteBtn.textContent = '×';
+        deleteBtn.addEventListener('click', function(e) { 
+            e.stopPropagation();
+            deleteMemoItem(memo.id); 
+        });
+        div.appendChild(deleteBtn);
+        
+        div.addEventListener('dragstart', function(e) {
+            draggedMemoId = memo.id;
+            div.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        
+        div.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            const allMemos = container.querySelectorAll('.memo-item');
+            allMemos.forEach(item => {
+                item.classList.remove('drag-over');
+            });
+            div.classList.add('drag-over');
+        });
+        
+        div.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const dropMemoId = parseInt(div.dataset.memoId);
+            
+            if(draggedMemoId && draggedMemoId !== dropMemoId){
+                const draggedMemo = memos.find(m => m.id === draggedMemoId);
+                const dropMemo = memos.find(m => m.id === dropMemoId);
+                
+                if(draggedMemo && dropMemo){
+                    const tempCreatedAt = draggedMemo.createdAt;
+                    draggedMemo.createdAt = dropMemo.createdAt;
+                    dropMemo.createdAt = tempCreatedAt;
+                    
+                    saveData();
+                    renderMemos();
+                }
+            }
+        });
+        
+        div.addEventListener('dragleave', function(e) {
+            div.classList.remove('drag-over');
+        });
+        
+        div.addEventListener('dragend', function(e) {
+            const allMemos = container.querySelectorAll('.memo-item');
+            allMemos.forEach(item => {
+                item.classList.remove('dragging', 'drag-over');
+            });
+            draggedMemoId = null;
+        });
+        
+        container.appendChild(div);
+    });
+}
+
+function handleMemoDragStart(e){
+    // 더 이상 사용하지 않음
+}
+
+function handleMemoDragOver(e){
+    // 더 이상 사용하지 않음
+}
+
+function handleMemoDrop(e){
+    // 더 이상 사용하지 않음
+}
+
+function handleMemoDragEnd(e){
+    // 더 이상 사용하지 않음
 }
 
 function parseTime(t){ const [h, m] = t.split(':').map(Number); return h + m/60; }
@@ -598,7 +695,15 @@ function renderTable(){
 
         const d = document.createElement('td'); 
         d.className = 'duration-cell'; 
-        d.innerHTML = `<input type="number" step="0.5" value="${s.duration}" onchange="updateDuration(${i},this.value)">`;
+        const durationInput = document.createElement('input');
+        durationInput.type = 'number';
+        durationInput.step = '0.5';
+        durationInput.value = s.duration;
+        durationInput.addEventListener('change', function() { 
+            schedules[i].duration = parseFloat(this.value) || 0.5;
+            updateAllTimes();
+        });
+        d.appendChild(durationInput);
         tr.appendChild(d);
         
         const t = document.createElement('td'); 
@@ -613,12 +718,106 @@ function renderTable(){
         input.type = 'text';
         input.value = s.task || '';
         
-        // 클로저를 사용하여 정확한 인덱스 전달
-        (function(index) {
-            input.oninput = function() { updateTaskInput(index, this.value); };
-            input.onblur = function() { updateTask(index, this.value); };
-            input.onkeydown = function(e) { handleTaskKeyDown(e, index); };
-        })(i);
+        input.addEventListener('input', function() { 
+            schedules[i].task = this.value;
+        });
+        
+        input.addEventListener('blur', function() { 
+            schedules[i].task = this.value;
+            saveData();
+        });
+        
+        input.addEventListener('keydown', function(e) { 
+            // Ctrl + D: 현재 행 복사
+            if(e.ctrlKey && e.key === 'd'){
+                e.preventDefault();
+                schedules[i].task = this.value;
+                const s = schedules[i]; 
+                schedules.splice(i + 1, 0, {duration: s.duration, task: '', completed: false}); 
+                updateAllTimes(); 
+                setTimeout(() => {
+                    const inputs = document.querySelectorAll('.task-input');
+                    if(inputs[i + 1]) inputs[i + 1].focus();
+                }, 50);
+                return;
+            }
+            
+            // Ctrl + Backspace: 현재 행 삭제
+            if(e.ctrlKey && e.key === 'Backspace'){
+                e.preventDefault();
+                if(schedules.length === 1) return;
+                
+                deletedHistory.push({
+                    index: i,
+                    data: JSON.parse(JSON.stringify(schedules[i]))
+                });
+                
+                schedules.splice(i, 1);
+                updateAllTimes();
+                
+                setTimeout(() => {
+                    const inputs = document.querySelectorAll('.task-input');
+                    const focusIndex = Math.min(i, inputs.length - 1);
+                    if(inputs[focusIndex]) inputs[focusIndex].focus();
+                }, 50);
+                return;
+            }
+            
+            // Ctrl + Enter: 현재 행 아래에 새 행 추가
+            if(e.ctrlKey && e.key === 'Enter'){
+                e.preventDefault();
+                schedules[i].task = this.value;
+                schedules.splice(i + 1, 0, {duration: 1, task: '', completed: false});
+                updateAllTimes();
+                setTimeout(() => {
+                    const inputs = document.querySelectorAll('.task-input');
+                    if(inputs[i + 1]) inputs[i + 1].focus();
+                }, 50);
+                return;
+            }
+            
+            // Enter: 다음 할일로 이동
+            if(e.key === 'Enter'){
+                e.preventDefault();
+                schedules[i].task = this.value;
+                saveData();
+                
+                const nextIndex = i + 1;
+                if(nextIndex < schedules.length){
+                    setTimeout(() => {
+                        const inputs = document.querySelectorAll('.task-input');
+                        if(inputs[nextIndex]) inputs[nextIndex].focus();
+                    }, 0);
+                }
+                return;
+            }
+            
+            if(e.key === 'ArrowDown'){
+                e.preventDefault();
+                schedules[i].task = this.value;
+                saveData();
+                
+                const nextIndex = i + 1;
+                if(nextIndex < schedules.length){
+                    setTimeout(() => {
+                        const inputs = document.querySelectorAll('.task-input');
+                        if(inputs[nextIndex]) inputs[nextIndex].focus();
+                    }, 0);
+                }
+            } else if(e.key === 'ArrowUp'){
+                e.preventDefault();
+                schedules[i].task = this.value;
+                saveData();
+                
+                const prevIndex = i - 1;
+                if(prevIndex >= 0){
+                    setTimeout(() => {
+                        const inputs = document.querySelectorAll('.task-input');
+                        if(inputs[prevIndex]) inputs[prevIndex].focus();
+                    }, 0);
+                }
+            }
+        });
         
         task.appendChild(input);
         tr.appendChild(task);
@@ -662,9 +861,19 @@ function handleDragEnd(e){
     });
 }
 
-function updateDuration(i, v){ schedules[i].duration = parseFloat(v) || 0.5; updateAllTimes(); }
-function updateTask(i, v){ schedules[i].task = v; saveData(); }
-function updateTaskInput(i, v){ schedules[i].task = v; saveData(); }
+function updateDuration(i, v){ 
+    schedules[i].duration = parseFloat(v) || 0.5; 
+    updateAllTimes(); 
+}
+
+function updateTask(i, v){ 
+    schedules[i].task = v; 
+    saveData(); 
+}
+
+function updateTaskInput(i, v){ 
+    schedules[i].task = v;
+}
 
 function handleTaskKeyDown(event, currentIndex){
     if(event.ctrlKey && event.key === 'd'){
