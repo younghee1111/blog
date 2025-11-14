@@ -363,7 +363,7 @@
                 <textarea 
                     class="memo-input" 
                     id="memoInput" 
-                    placeholder="메모를 입력하세요... (Enter: 추가 / Shift+Enter: 줄바꿈)"
+                    placeholder=""
                     onkeydown="handleMemoKeyDown(event)"
                 ></textarea>
                 <div class="color-selector">
@@ -375,7 +375,7 @@
                 </div>
             </div>
             <div class="memo-list" id="memoList">
-                <div class="memo-empty">메모를 추가해보세요 📝</div>
+                <div class="memo-empty"></div>
             </div>
         </div>
     </div>
@@ -603,78 +603,7 @@ function deleteMemoItem(id){
     renderMemos();
 }
 
-function renderMemos(){
-    const container = document.getElementById('memoList');
-    container.innerHTML = '';
-    
-    if(memos.length === 0){
-        const emptyDiv = document.createElement('div');
-        emptyDiv.className = 'memo-empty';
-        emptyDiv.textContent = '메모를 추가해보세요 📝';
-        container.appendChild(emptyDiv);
-        return;
-    }
-    
-    memos.forEach((memo, index) => {
-        const div = document.createElement('div');
-        div.className = 'memo-item';
-        div.draggable = true;
-        div.dataset.memoIndex = index;
-        div.style.background = memo.color;
-        div.appendChild(document.createTextNode(memo.text));
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'memo-delete';
-        deleteBtn.textContent = '×';
-        deleteBtn.addEventListener('click', function(e) { 
-            e.stopPropagation();
-            deleteMemoItem(memo.id); 
-        });
-        div.appendChild(deleteBtn);
-        
-        div.addEventListener('dragstart', function(e) {
-            draggedMemoIndex = index;
-            div.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-        });
-        
-        div.addEventListener('dragover', function(e) {
-            e.preventDefault();
-        });
-        
-        div.addEventListener('drop', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const dropIndex = parseInt(div.dataset.memoIndex, 10);
-            if(draggedMemoIndex === null || draggedMemoIndex === dropIndex) return;
-            
-            const rect = div.getBoundingClientRect();
-            const isAfter = e.clientY > rect.top + rect.height / 2;
-            
-            const memoItem = memos.splice(draggedMemoIndex, 1)[0];
-            let targetIndex = dropIndex;
-            if(isAfter) targetIndex = dropIndex + 1;
-            if(draggedMemoIndex < targetIndex) targetIndex--;
-            memos.splice(targetIndex, 0, memoItem);
-            
-            saveData();
-            renderMemos();
-        });
-        
-        div.addEventListener('dragleave', function() {});
-        
-        div.addEventListener('dragend', function() {
-            const allMemos = container.querySelectorAll('.memo-item');
-            allMemos.forEach(item => {
-                item.classList.remove('dragging');
-            });
-            draggedMemoIndex = null;
-        });
-        
-        container.appendChild(div);
-    });
-}
+renderMemos()
 
 /* ------------------------------
    일정 계산 / 렌더링
