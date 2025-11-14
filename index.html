@@ -340,12 +340,16 @@
                 <span>오늘의 통계</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">남은 시간</span>
-                <span class="stat-value" id="statRemaining">0시간(0개)</span>
+                <span class="stat-label">업무 시간</span>
+                <span class="stat-value" id="statWorkTime">0시간 (0개)</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">총 업무</span>
-                <span class="stat-value" id="statTotal">0시간(0개)</span>
+                <span class="stat-label">완료 일정</span>
+                <span class="stat-value" id="statCompleted">0시간 (0개)</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">남은 일정</span>
+                <span class="stat-value" id="statRemaining">0시간 (0개)</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">완료율</span>
@@ -674,6 +678,27 @@ function renderMemos(){
         
         container.appendChild(div);
     });
+
+    // 맨 아래로 보내는 tail 영역
+    const tail = document.createElement('div');
+    tail.style.height = '28px';
+    tail.style.border = '2px dashed transparent';
+    tail.style.marginTop = '4px';
+
+    tail.addEventListener('dragover', function(e){
+        e.preventDefault();
+    });
+
+    tail.addEventListener('drop', function(e){
+        e.preventDefault();
+        if(draggedMemoIndex === null) return;
+        const memoItem = memos.splice(draggedMemoIndex, 1)[0];
+        memos.push(memoItem);
+        saveData();
+        renderMemos();
+    });
+
+    container.appendChild(tail);
 }
 
 /* ------------------------------
@@ -941,45 +966,58 @@ function updateAllTimes(){
 function updateStats(){
     const nowH = nowInHours();
     
-    // 남은 시간(회의/식사 포함)
+    // (1) 업무 시간 = 전체 일정 총시간
+    let allHours = 0;
+    let allCount = schedules.length;
+
+    // (2) 남은 일정 (회의/식사 포함)
     let remainingHours = 0;
     let remainingCount = 0;
-    
-    // 업무 통계(회의/식사 제외) – 기존 로직 유지
-    let totalWorkHours = 0;
-    let totalWorkCount = 0;
-    let completedWorkHours = 0;
-    let completedWorkCount = 0;
-    
+
+    // (3) 완료 일정 (식사 제외)
+    let completedHours = 0;
+    let completedCount = 0;
+
+    // (4) 완료율 = 전체 일정 기준
+    let wholeCompletedHours = 0;
+
     schedules.forEach(s => {
-        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
-        
-        // 🔹 남은 시간: 모든 일정 포함
+        const isMeal = /점심|점심식사|저녁|저녁식사|식사/i.test(s.task);
+
+        // 전체 일정 총시간
+        allHours += s.duration;
+
+        // 완료율 계산용: 전체 일정 기준
+        if(s.completed){
+            wholeCompletedHours += s.duration;
+        }
+
+        // 남은 일정: 회의/식사 포함
         if(nowH < s.endNum){
             remainingHours += s.duration;
             remainingCount++;
         }
-        
-        // 🔹 업무 관련 통계: 회의/식사 제외 (예전과 동일)
-        if(!isMeal){
-            totalWorkHours += s.duration;
-            totalWorkCount++;
-            
-            if(s.completed){
-                completedWorkHours += s.duration;
-                completedWorkCount++;
-            }
+
+        // 완료 일정: 완료 + 식사 제외
+        if(s.completed && !isMeal){
+            completedHours += s.duration;
+            completedCount++;
         }
     });
-    
-    const progressPercent = totalWorkHours > 0 
-        ? Math.round((completedWorkHours / totalWorkHours) * 100) 
+
+    const progressPercent = allHours > 0
+        ? Math.round((wholeCompletedHours / allHours) * 100)
         : 0;
-    
-    document.getElementById('statRemaining').textContent = 
-        `${formatHours(remainingHours)}(${remainingCount}개)`;
-    document.getElementById('statTotal').textContent = 
-        `${formatHours(completedWorkHours)}(${completedWorkCount}개)`;
+
+    document.getElementById('statWorkTime').textContent =
+        `${formatHours(allHours)} (${allCount}개)`;
+
+    document.getElementById('statCompleted').textContent =
+        `${formatHours(completedHours)} (${completedCount}개)`;
+
+    document.getElementById('statRemaining').textContent =
+        `${formatHours(remainingHours)} (${remainingCount}개)`;
+
     document.getElementById('statProgress').textContent = `${progressPercent}%`;
 }
 
