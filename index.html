@@ -237,9 +237,23 @@
         .duration-cell { background: #ecf0f1; width: 70px; text-align:center; }
         .duration-cell input { text-align:center; width:100%; background: transparent; border: none; outline: none; font-size: 15px; }
         .time-cell { background: #ecf0f1; }
-        .task-cell { background: white; text-align:left; }
+        .task-cell { background: white; text-align:left; vertical-align: top; }
 
-        .task-input { background: transparent; border: none; outline: none; width: 100%; color:#2c3e50; font-size:15px; padding:8px; }
+        .task-input { 
+            background: transparent; 
+            border: none; 
+            outline: none; 
+            width: 100%; 
+            color:#2c3e50; 
+            font-size:15px; 
+            padding:8px;
+            resize: none;
+            overflow: hidden;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: inherit;
+            line-height: 1.4;
+        }
 
         #scheduleBody tr.dragging { opacity: 0.5; }
         #scheduleBody tr.drag-over { border-top: 3px solid #3498db; }
@@ -824,21 +838,70 @@ function renderTable(){
         
         const task = document.createElement('td'); 
         task.className = 'task-cell';
-        const input = document.createElement('input');
-        input.className = 'task-input';
-        input.type = 'text';
-        input.value = s.task || '';
+        const textarea = document.createElement('textarea');
+        textarea.className = 'task-input';
+        textarea.value = s.task || '';
+        textarea.rows = 1;
         
-        input.addEventListener('input', function() { 
+        // 자동 높이 조절
+        const autoResize = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        };
+        
+        textarea.addEventListener('input', function() { 
             s.task = this.value;
+            autoResize();
         });
         
-        input.addEventListener('blur', function() { 
+        textarea.addEventListener('blur', function() { 
             s.task = this.value;
             saveData();
         });
         
-        input.addEventListener('keydown', function(e) { 
+        // 초기 높이 설정
+        setTimeout(autoResize, 0);
+        
+        textarea.addEventListener('keydown', function(e) { 
+            // Shift + Enter: 줄바꿈 (기본 동작)
+            if(e.shiftKey && e.key === 'Enter'){
+                // 기본 줄바꿈 동작 허용
+                setTimeout(autoResize, 0);
+                return;
+            }
+            
+            // Alt + ArrowUp: 현재 행을 위로 이동
+            if(e.altKey && e.key === 'ArrowUp'){
+                e.preventDefault();
+                const idx = schedules.indexOf(s);
+                if(idx > 0){
+                    s.task = this.value;
+                    [schedules[idx - 1], schedules[idx]] = [schedules[idx], schedules[idx - 1]];
+                    updateAllTimes();
+                    setTimeout(() => {
+                        const inputs = document.querySelectorAll('.task-input');
+                        if(inputs[idx - 1]) inputs[idx - 1].focus();
+                    }, 50);
+                }
+                return;
+            }
+            
+            // Alt + ArrowDown: 현재 행을 아래로 이동
+            if(e.altKey && e.key === 'ArrowDown'){
+                e.preventDefault();
+                const idx = schedules.indexOf(s);
+                if(idx < schedules.length - 1){
+                    s.task = this.value;
+                    [schedules[idx], schedules[idx + 1]] = [schedules[idx + 1], schedules[idx]];
+                    updateAllTimes();
+                    setTimeout(() => {
+                        const inputs = document.querySelectorAll('.task-input');
+                        if(inputs[idx + 1]) inputs[idx + 1].focus();
+                    }, 50);
+                }
+                return;
+            }
+            
             // Ctrl + D: 현재 행 복사
             if(e.ctrlKey && e.key === 'd'){
                 e.preventDefault();
@@ -876,8 +939,8 @@ function renderTable(){
                 return;
             }
             
-            // Enter: 다음 할일로 이동
-            if(e.key === 'Enter'){
+            // Enter (Shift 없이): 다음 할일로 이동
+            if(e.key === 'Enter' && !e.shiftKey){
                 e.preventDefault();
                 s.task = this.value;
                 saveData();
@@ -893,7 +956,8 @@ function renderTable(){
                 return;
             }
             
-            if(e.key === 'ArrowDown'){
+            // ArrowDown: 다음 행으로 이동 (Alt 없이)
+            if(e.key === 'ArrowDown' && !e.altKey){
                 e.preventDefault();
                 s.task = this.value;
                 saveData();
@@ -906,7 +970,9 @@ function renderTable(){
                         if(inputs[nextIndex]) inputs[nextIndex].focus();
                     }, 0);
                 }
-            } else if(e.key === 'ArrowUp'){
+            } 
+            // ArrowUp: 이전 행으로 이동 (Alt 없이)
+            else if(e.key === 'ArrowUp' && !e.altKey){
                 e.preventDefault();
                 s.task = this.value;
                 saveData();
@@ -922,7 +988,7 @@ function renderTable(){
             }
         });
         
-        task.appendChild(input);
+        task.appendChild(textarea);
         tr.appendChild(task);
         
         tr.addEventListener('dragstart', handleDragStart);
