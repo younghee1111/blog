@@ -407,13 +407,13 @@
                 <thead>
                     <tr>
                         <!-- 시간단위 칸: 120px, 텍스트 한줄 -->
-                        <th style="width:120px;">시간단위</th>
+                        <th style="width:100px;">단위</th>
                         <!-- 시간 칸: 180px, 시간 한줄 -->
-                        <th style="width:180px;">시간</th>
+                        <th style="width:160px;">시간</th>
                         <!-- 할일 칸: 30% -->
-                        <th style="width:30%;">할일</th>
+                        <th style="width:25%;">할일</th>
                         <!-- 메모 칸: 70% -->
-                        <th style="width:70%;">메모</th>
+                        <th style="width:60%;">메모</th>
                     </tr>
                 </thead>
                 <tbody id="scheduleBody"></tbody>
@@ -1093,9 +1093,8 @@ function renderTable(){
                 return;
             }
             
-            // === 화살표 키 (Ctrl, Alt, Shift 없을 때만) ===
             // 왼쪽 화살표: 커서가 맨 앞이면 할일로
-            if(e.key === 'ArrowLeft' && !e.ctrlKey && !e.altKey && !e.shiftKey){
+            if(e.key === 'ArrowLeft'){
                 if(this.selectionStart === 0){
                     e.preventDefault();
                     s.memo = this.value;
@@ -1114,7 +1113,7 @@ function renderTable(){
             }
             
             // 위 화살표: 이전 행 메모로
-            if(e.key === 'ArrowUp' && !e.ctrlKey && !e.altKey && !e.shiftKey){
+            if(e.key === 'ArrowUp'){
                 e.preventDefault();
                 s.memo = this.value;
                 saveData();
@@ -1130,7 +1129,7 @@ function renderTable(){
             }
             
             // 아래 화살표: 다음 행 메모로
-            if(e.key === 'ArrowDown' && !e.ctrlKey && !e.altKey && !e.shiftKey){
+            if(e.key === 'ArrowDown'){
                 e.preventDefault();
                 s.memo = this.value;
                 saveData();
