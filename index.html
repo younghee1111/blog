@@ -460,7 +460,7 @@
     <!-- 왼쪽 패널: 일정관리 시스템 -->
     <div class="left-panel">
         <div class="card">
-            <h1>📅 일정관리 시스템</h1>
+            <h1>📅 업무일정</h1>
 
             <div class="row space">
                 <div class="row">
@@ -484,7 +484,7 @@
                         <!-- 시간 칸: 180px, 시간 한줄 -->
                         <th style="width:0px;">시간</th>
                         <!-- 할일 칸: 40% -->
-                        <th style="width:25%;">할일</th>
+                        <th style="width:25%;">업무</th>
                         <!-- 메모 칸: 60% -->
                         <th style="width:60%;">메모</th>
                     </tr>
@@ -657,7 +657,7 @@
         <div class="modal-body">
             <div class="form-group">
                 <label>프로젝트 이름</label>
-                <input type="text" id="ddayTitle" placeholder="예: 삼성전자 보고서" />
+                <input type="text" id="ddayTitle" placeholder="" />
             </div>
             <div class="form-group">
                 <label>마감일</label>
@@ -937,7 +937,7 @@ function renderDdays(){
     const container = document.getElementById('ddayList');
     
     if(ddays.length === 0){
-        container.innerHTML = '<div class="memo-empty" style="padding:20px;">등록된 마감일이 없습니다.</div>';
+        container.innerHTML = '<div class="memo-empty" style="padding:0px;"></div>';
         return;
     }
     
@@ -1010,11 +1010,10 @@ function saveDday(){
 }
 
 function deleteDday(id){
-    if(confirm('이 디데이를 삭제하시겠습니까?')){
-        ddays = ddays.filter(d => d.id !== id);
-        saveData();
-        renderDdays();
-    }
+    // 일정 삭제 메시지 삭제
+    ddays = ddays.filter(d => d.id !== id);
+    saveData();
+    renderDdays();
 }
 
 function addDday(title, date){
