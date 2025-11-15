@@ -26,13 +26,13 @@
         .main-layout {
             display: flex;
             gap: 20px;
-            max-width: 1500px;
+            max-width: 1600px;
             width: 100%;
             margin-top: 20px;
         }
         
         .left-panel {
-            flex: 0 0 1200px;
+            flex: 0 0 1300px;
             min-width: 0;
         }
         
@@ -59,6 +59,31 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+        
+        .card-title .color-selector-inline {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+        
+        .card-title .color-option {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+        
+        .card-title .color-option:hover {
+            transform: scale(1.1);
+            border-color: #bbb;
+        }
+        
+        .card-title .color-option.active {
+            border-color: #2c3e50;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
         
         /* 오늘의 통계 카드 */
@@ -91,7 +116,7 @@
         
         /* 메모 카드 */
         .memo-card {
-            flex: 1;
+            flex: 0;
             display: flex;
             flex-direction: column;
         }
@@ -100,12 +125,12 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         
         .memo-input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             font-family: inherit;
@@ -113,7 +138,7 @@
             outline: none;
             transition: border-color 0.2s;
             resize: none;
-            min-height: 120px;
+            min-height: 60px;
             line-height: 1.6;
             box-sizing: border-box;
         }
@@ -122,37 +147,10 @@
             border-color: #3498db;
         }
         
-        .color-selector {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .color-option {
-            width: 24px;
-            height: 24px;
-            border-radius: 5px;
-            cursor: pointer;
-            border: 2px solid #e0e0e0;
-            transition: all 0.2s;
-        }
-        
-        .color-option:hover {
-            transform: scale(1.15);
-            border-color: #bbb;
-        }
-        
-        .color-option.active {
-            border-color: #2c3e50;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        
         .memo-list {
-            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            overflow-y: auto;
         }
         
         .memo-item {
@@ -210,7 +208,7 @@
         .memo-empty {
             text-align: center;
             color: #95a5a6;
-            padding: 40px 20px;
+            padding: 0px;
             font-size: 14px;
         }
         
@@ -345,6 +343,81 @@
             padding: 40px 20px;
             font-size: 14px;
         }
+        
+        /* 디데이 카드 */
+        .dday-card {
+            flex-shrink: 0;
+        }
+        
+        .dday-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dday-item:last-child {
+            border-bottom: none;
+        }
+        
+        .dday-title {
+            font-size: 13px;
+            color: #2c3e50;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .dday-delete {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #bdc3c7;
+            font-size: 18px;
+            padding: 0 4px;
+            margin-left: 8px;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+        
+        .dday-delete:hover {
+            color: #e74c3c;
+        }
+        
+        .dday-badge {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        
+        .dday-today {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .dday-urgent {
+            background: #e67e22;
+            color: white;
+        }
+        
+        .dday-soon {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .dday-normal {
+            background: #3498db;
+            color: white;
+        }
+        
+        .dday-passed {
+            background: #95a5a6;
+            color: white;
+        }
 
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; font-size: 14px; }
@@ -407,12 +480,12 @@
                 <thead>
                     <tr>
                         <!-- 시간단위 칸: 120px, 텍스트 한줄 -->
-                        <th style="width:100px;">단위</th>
+                        <th style="width:0px;">단위</th>
                         <!-- 시간 칸: 180px, 시간 한줄 -->
-                        <th style="width:160px;">시간</th>
-                        <!-- 할일 칸: 30% -->
+                        <th style="width:0px;">시간</th>
+                        <!-- 할일 칸: 40% -->
                         <th style="width:25%;">할일</th>
-                        <!-- 메모 칸: 70% -->
+                        <!-- 메모 칸: 60% -->
                         <th style="width:60%;">메모</th>
                     </tr>
                 </thead>
@@ -447,11 +520,28 @@
             </div>
         </div>
 
+        <!-- 디데이 카드 -->
+        <div class="card dday-card">
+            <div class="card-title">
+                <span>🎯</span>
+                <span>프로젝트 마감</span>
+                <button class="btn-soft-green" onclick="openAddDdayModal()" style="margin-left:auto; padding:4px 8px; font-size:11px;">+ 추가</button>
+            </div>
+            <div id="ddayList"></div>
+        </div>
+
         <!-- 메모 카드 -->
         <div class="card memo-card">
             <div class="card-title">
                 <span>📝</span>
                 <span>메모</span>
+                <div class="color-selector-inline">
+                    <div class="color-option active" style="background:#FFF9E6;" data-color="#FFF9E6" onclick="setSelectedColor(this)"></div>
+                    <div class="color-option" style="background:#FFE6F0;" data-color="#FFE6F0" onclick="setSelectedColor(this)"></div>
+                    <div class="color-option" style="background:#E6F0FF;" data-color="#E6F0FF" onclick="setSelectedColor(this)"></div>
+                    <div class="color-option" style="background:#E5F7E9;" data-color="#E5F7E9" onclick="setSelectedColor(this)"></div>
+                    <div class="color-option" style="background:#F0E9FF;" data-color="#F0E9FF" onclick="setSelectedColor(this)"></div>
+                </div>
             </div>
             <div class="memo-input-container">
                 <textarea 
@@ -460,13 +550,6 @@
                     placeholder=""
                     onkeydown="handleMemoKeyDown(event)"
                 ></textarea>
-                <div class="color-selector">
-                    <div class="color-option active" style="background:#FFF9E6;" data-color="#FFF9E6" onclick="setSelectedColor(this)"></div>
-                    <div class="color-option" style="background:#FFE6F0;" data-color="#FFE6F0" onclick="setSelectedColor(this)"></div>
-                    <div class="color-option" style="background:#E6F0FF;" data-color="#E6F0FF" onclick="setSelectedColor(this)"></div>
-                    <div class="color-option" style="background:#E5F7E9;" data-color="#E5F7E9" onclick="setSelectedColor(this)"></div>
-                    <div class="color-option" style="background:#F0E9FF;" data-color="#F0E9FF" onclick="setSelectedColor(this)"></div>
-                </div>
             </div>
             <div class="memo-list" id="memoList">
                 <div class="memo-empty"></div>
@@ -565,6 +648,29 @@
     </div>
 </div>
 
+<div id="addDdayModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>🎯 디데이 추가</h2>
+            <span class="modal-close" onclick="closeAddDdayModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>프로젝트 이름</label>
+                <input type="text" id="ddayTitle" placeholder="예: 삼성전자 보고서" />
+            </div>
+            <div class="form-group">
+                <label>마감일</label>
+                <input type="date" id="ddayDate" />
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-soft-orange" onclick="closeAddDdayModal()">취소</button>
+            <button class="btn-soft-green" onclick="saveDday()">추가</button>
+        </div>
+    </div>
+</div>
+
 <script>
 /* ------------------------------
    전역 상태
@@ -579,6 +685,7 @@ let deletedHistory = [];
 let memos = [];
 let selectedMemoColor = '#FFF9E6';
 let draggedMemoIndex = null;
+let ddays = []; // 디데이 목록
 const START_TIME = "9:00";
 const WINDOW = 0.05;
 
@@ -648,6 +755,7 @@ function loadData(){
     const savedTemplates = localStorage.getItem('templates');
     const savedAlarmSettings = localStorage.getItem('alarmSettings');
     const savedMemos = localStorage.getItem('dailyMemos');
+    const savedDdays = localStorage.getItem('ddays');
     
     if(saved){ 
         schedules = JSON.parse(saved); 
@@ -668,9 +776,14 @@ function loadData(){
         memos = JSON.parse(savedMemos);
     }
     
+    if(savedDdays){
+        ddays = JSON.parse(savedDdays);
+    }
+    
     ensureDailyReset();
     checkAndCreateAutoBackup();
     renderMemos();
+    renderDdays();
     renderTable();
     initAlarmSystem();
     updateStats();
@@ -681,13 +794,14 @@ function saveData(){
     localStorage.setItem('templates', JSON.stringify(templates));
     localStorage.setItem('alarmSettings', JSON.stringify(alarmSettings));
     localStorage.setItem('dailyMemos', JSON.stringify(memos));
+    localStorage.setItem('ddays', JSON.stringify(ddays));
 }
 
 /* ------------------------------
    메모 관련
 ------------------------------ */
 function setSelectedColor(element){
-    document.querySelectorAll('.color-option').forEach(opt => {
+    document.querySelectorAll('.color-selector-inline .color-option').forEach(opt => {
         opt.classList.remove('active');
     });
     element.classList.add('active');
@@ -796,9 +910,9 @@ function renderMemos(){
     });
 
     const tail = document.createElement('div');
-    tail.style.height = '28px';
-    tail.style.border = '2px dashed transparent';
-    tail.style.marginTop = '4px';
+    tail.style.height = '0px';
+    tail.style.border = '0px dashed transparent';
+    tail.style.marginTop = '0px';
 
     tail.addEventListener('dragover', function(e){
         e.preventDefault();
@@ -814,6 +928,103 @@ function renderMemos(){
     });
 
     container.appendChild(tail);
+}
+
+/* ------------------------------
+   디데이 관련
+------------------------------ */
+function renderDdays(){
+    const container = document.getElementById('ddayList');
+    
+    if(ddays.length === 0){
+        container.innerHTML = '<div class="memo-empty" style="padding:20px;">등록된 마감일이 없습니다.</div>';
+        return;
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // 남은 날짜 계산 및 정렬
+    const sortedDdays = ddays.map(d => {
+        const deadline = new Date(d.date);
+        deadline.setHours(0, 0, 0, 0);
+        const diffTime = deadline - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return { ...d, diffDays };
+    }).sort((a, b) => a.diffDays - b.diffDays);
+    
+    container.innerHTML = sortedDdays.map(d => {
+        let badgeClass = 'dday-normal';
+        let badgeText = `D-${d.diffDays}`;
+        
+        if(d.diffDays < 0){
+            badgeClass = 'dday-passed';
+            badgeText = `D+${Math.abs(d.diffDays)}`;
+        } else if(d.diffDays === 0){
+            badgeClass = 'dday-today';
+            badgeText = 'D-Day';
+        } else if(d.diffDays <= 3){
+            badgeClass = 'dday-urgent';
+        } else if(d.diffDays <= 7){
+            badgeClass = 'dday-soon';
+        }
+        
+        return `
+            <div class="dday-item">
+                <span class="dday-title" title="${d.title}">${d.title}</span>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <span class="dday-badge ${badgeClass}">${badgeText}</span>
+                    <button class="dday-delete" onclick="deleteDday(${d.id})" title="삭제">×</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openAddDdayModal(){
+    document.getElementById('ddayTitle').value = '';
+    document.getElementById('ddayDate').value = '';
+    document.getElementById('addDdayModal').classList.add('show');
+}
+
+function closeAddDdayModal(){
+    document.getElementById('addDdayModal').classList.remove('show');
+}
+
+function saveDday(){
+    const title = document.getElementById('ddayTitle').value.trim();
+    const date = document.getElementById('ddayDate').value;
+    
+    if(!title){
+        alert('프로젝트 이름을 입력하세요.');
+        return;
+    }
+    
+    if(!date){
+        alert('마감일을 선택하세요.');
+        return;
+    }
+    
+    addDday(title, date);
+    closeAddDdayModal();
+}
+
+function deleteDday(id){
+    if(confirm('이 디데이를 삭제하시겠습니까?')){
+        ddays = ddays.filter(d => d.id !== id);
+        saveData();
+        renderDdays();
+    }
+}
+
+function addDday(title, date){
+    ddays.push({
+        id: Date.now(),
+        title,
+        date
+    });
+    saveData();
+    renderDdays();
 }
 
 /* ------------------------------
@@ -1093,55 +1304,55 @@ function renderTable(){
                 return;
             }
             
-            // 왼쪽 화살표: 커서가 맨 앞이면 할일로
-            if(e.key === 'ArrowLeft'){
-                if(this.selectionStart === 0){
+            // 화살표 키 (순수 화살표만)
+            if(!e.ctrlKey && !e.altKey){
+                if(e.key === 'ArrowLeft'){
+                    if(this.selectionStart === 0){
+                        e.preventDefault();
+                        s.memo = this.value;
+                        saveData();
+                        
+                        setTimeout(() => {
+                            const taskInputs = document.querySelectorAll('.task-input');
+                            if(taskInputs[idx]) {
+                                taskInputs[idx].focus();
+                                taskInputs[idx].selectionStart = taskInputs[idx].value.length;
+                                taskInputs[idx].selectionEnd = taskInputs[idx].value.length;
+                            }
+                        }, 0);
+                    }
+                    return;
+                }
+                
+                if(e.key === 'ArrowUp'){
                     e.preventDefault();
                     s.memo = this.value;
                     saveData();
                     
-                    setTimeout(() => {
-                        const taskInputs = document.querySelectorAll('.task-input');
-                        if(taskInputs[idx]) {
-                            taskInputs[idx].focus();
-                            taskInputs[idx].selectionStart = taskInputs[idx].value.length;
-                            taskInputs[idx].selectionEnd = taskInputs[idx].value.length;
-                        }
-                    }, 0);
+                    const prevIndex = idx - 1;
+                    if(prevIndex >= 0){
+                        setTimeout(() => {
+                            const memoInputs = document.querySelectorAll('.memo-input-cell');
+                            if(memoInputs[prevIndex]) memoInputs[prevIndex].focus();
+                        }, 0);
+                    }
+                    return;
                 }
-                return;
-            }
-            
-            // 위 화살표: 이전 행 메모로
-            if(e.key === 'ArrowUp'){
-                e.preventDefault();
-                s.memo = this.value;
-                saveData();
                 
-                const prevIndex = idx - 1;
-                if(prevIndex >= 0){
-                    setTimeout(() => {
-                        const memoInputs = document.querySelectorAll('.memo-input-cell');
-                        if(memoInputs[prevIndex]) memoInputs[prevIndex].focus();
-                    }, 0);
+                if(e.key === 'ArrowDown'){
+                    e.preventDefault();
+                    s.memo = this.value;
+                    saveData();
+                    
+                    const nextIndex = idx + 1;
+                    if(nextIndex < schedules.length){
+                        setTimeout(() => {
+                            const memoInputs = document.querySelectorAll('.memo-input-cell');
+                            if(memoInputs[nextIndex]) memoInputs[nextIndex].focus();
+                        }, 0);
+                    }
+                    return;
                 }
-                return;
-            }
-            
-            // 아래 화살표: 다음 행 메모로
-            if(e.key === 'ArrowDown'){
-                e.preventDefault();
-                s.memo = this.value;
-                saveData();
-                
-                const nextIndex = idx + 1;
-                if(nextIndex < schedules.length){
-                    setTimeout(() => {
-                        const memoInputs = document.querySelectorAll('.memo-input-cell');
-                        if(memoInputs[nextIndex]) memoInputs[nextIndex].focus();
-                    }, 0);
-                }
-                return;
             }
         });
         
