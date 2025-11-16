@@ -255,6 +255,8 @@
             min-height: auto;
             text-align: left;
             box-sizing: border-box;
+            display: block;
+            vertical-align: top;
         }
 
         .memo-input-cell { 
@@ -274,29 +276,69 @@
             min-height: auto;
             text-align: left;
             box-sizing: border-box;
+            display: block;
+            vertical-align: top;
         }
 
         #scheduleBody tr.dragging { opacity: 0.5; }
         #scheduleBody tr.drag-over { border-top: 3px solid #3498db; }
         
-        .task-cell:focus-within { background:#f0f0f0 !important; }
-        
-        tr.completed-row .task-cell { background:#f5f5f5 !important; }
-        tr.completed-row .task-cell:focus-within { background:#ebebeb !important; }
-        tr.completed-row .task-input { color:#7f8c8d; }
-        tr.completed-row .memo-input-cell { color:#aaa; }
-        tr.completed-row .duration-cell { background:#e8e8e8 !important; }
-        tr.completed-row .time-cell { background:#e8e8e8 !important; color:#7f8c8d; }
-        
-        tr.active .task-cell { background:#FFF9E6 !important; }
-        tr.active .task-cell:focus-within { background:#FFF3CC !important; }
-        tr.active .time-cell { background:#FFF7E6 !important; font-weight:700; }
-        
-        tr.meal-row .task-cell { background:#F3E8FF !important; }
-        tr.meal-row .task-cell:focus-within { background:#E8D9FF !important; }
+        /* ========================================
+           입력칸(업무/메모) 배경색 설정 영역
+           ======================================== */
         
         /* 기본 행은 흰색 배경 */
-        tr:not(.completed-row):not(.active):not(.meal-row) .task-cell { background: white !important; }
+        tr:not(.completed-row):not(.active):not(.meal-row) .task-cell { 
+            background: white !important; /* 👈 기본 배경색 */
+        }
+        
+        /* 입력할 때 - 업무+메모 둘 다 회색 */
+        tr:not(.completed-row):not(.active):not(.meal-row):focus-within .task-cell { 
+            background:#f1f1f1 !important; /* 👈 입력 중 배경색 */
+        }
+        
+        /* 현재 일정 - 업무칸과 메모칸 모두 연한 노란색 */
+        tr.active:not(.completed-row):not(.meal-row) .task-cell { 
+            background:#FFF9E6 !important; /* 👈 현재 일정 배경색 */
+        }
+        tr.active:not(.completed-row):not(.meal-row):focus-within .task-cell { 
+            background:#FFF3CC !important; /* 👈 현재 일정 입력 중 배경색 */
+        }
+        tr.active:not(.completed-row):not(.meal-row) .time-cell { 
+            background:#FFF7E6 !important; /* 👈 현재 일정 시간칸 배경색 */
+            font-weight:700; 
+        }
+        
+        /* 완료된 일정 - 업무칸과 메모칸 모두 회색 */
+        tr.completed-row:not(.meal-row) .task-cell { 
+            background:#ececec !important; /* 👈 완료된 일정 배경색 */
+        }
+        tr.completed-row:not(.meal-row):focus-within .task-cell { 
+            background:#d0d0d0 !important; /* 👈 완료된 일정 입력 중 배경색 */
+        }
+        tr.completed-row:not(.meal-row) .task-input { 
+            color:#7f8c8d; /* 👈 완료된 일정 업무 텍스트 색상 */
+        }
+        tr.completed-row:not(.meal-row) .memo-input-cell { 
+            color:#aaa; /* 👈 완료된 일정 메모 텍스트 색상 */
+        }
+        tr.completed-row:not(.meal-row) .duration-cell { 
+            background:#ececec !important; /* 👈 완료된 일정 단위칸 배경색 */
+        }
+        tr.completed-row:not(.meal-row) .time-cell { 
+            background:#ececec !important; /* 👈 완료된 일정 시간칸 배경색 */
+            color:#7f8c8d; /* 👈 완료된 일정 시간 텍스트 색상 */
+        }
+        
+        /* 식사 일정 - 완료 여부 관계없이 무조건 보라색 (최우선) */
+        tr.meal-row .task-cell { 
+            background:#F3E8FF !important; /* 👈 식사 일정 배경색 */
+        }
+        tr.meal-row:focus-within .task-cell { 
+            background:#E8D9FF !important; /* 👈 식사 일정 입력 중 배경색 */
+        }
+        
+        /* ======================================== */
 
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
         .modal.show { display: flex; align-items: center; justify-content: center; }
@@ -479,13 +521,9 @@
             <table id="scheduleTable">
                 <thead>
                     <tr>
-                        <!-- 시간단위 칸: 120px, 텍스트 한줄 -->
                         <th style="width:0px;">단위</th>
-                        <!-- 시간 칸: 180px, 시간 한줄 -->
                         <th style="width:0px;">시간</th>
-                        <!-- 할일 칸: 40% -->
                         <th style="width:25%;">업무</th>
-                        <!-- 메모 칸: 60% -->
                         <th style="width:60%;">메모</th>
                     </tr>
                 </thead>
@@ -685,7 +723,7 @@ let deletedHistory = [];
 let memos = [];
 let selectedMemoColor = '#FFF9E6';
 let draggedMemoIndex = null;
-let ddays = []; // 디데이 목록
+let ddays = [];
 const START_TIME = "9:00";
 const WINDOW = 0.05;
 
@@ -944,7 +982,6 @@ function renderDdays(){
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // 남은 날짜 계산 및 정렬
     const sortedDdays = ddays.map(d => {
         const deadline = new Date(d.date);
         deadline.setHours(0, 0, 0, 0);
@@ -1010,7 +1047,6 @@ function saveDday(){
 }
 
 function deleteDday(id){
-    // 일정 삭제 메시지 삭제
     ddays = ddays.filter(d => d.id !== id);
     saveData();
     renderDdays();
@@ -1042,10 +1078,32 @@ function calculateTimes(){
 
 function renderTable(){
     calculateTimes();
-    updateStats();
     const tbody = document.getElementById('scheduleBody');
     tbody.innerHTML = '';
     const nowH = nowInHours();
+    
+    // 완료 상태 자동 관리
+    let needSave = false;
+    schedules.forEach(s => {
+        // 아직 시작되지 않은 일정은 미완료
+        if(nowH < s.startNum && s.completed) {
+            s.completed = false;
+            needSave = true;
+        }
+        // 현재 진행 중이면 미완료
+        if(nowH >= s.startNum && nowH < s.endNum && s.completed) {
+            s.completed = false;
+            needSave = true;
+        }
+        // 시간이 완전히 지나면 완료
+        if(nowH >= s.endNum && !s.completed) {
+            s.completed = true;
+            needSave = true;
+        }
+    });
+    if(needSave) saveData();
+    
+    updateStats();
     
     schedules.forEach((s, i) => {
         const tr = document.createElement('tr');
@@ -1059,11 +1117,6 @@ function renderTable(){
         if(nowH >= s.startNum && nowH < s.endNum) {
             tr.classList.add('active');
         }
-        
-        // 완료 처리는 수동으로만 (자동 완료 제거)
-        // if(nowH >= s.endNum) {
-        //     s.completed = true;
-        // }
         
         if(s.completed) tr.classList.add('completed-row');
 
@@ -1101,6 +1154,14 @@ function renderTable(){
         textarea.addEventListener('input', function() { 
             s.task = this.value;
             autoResize();
+            
+            // 식사 키워드 실시간 반영
+            const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
+            if(isMeal){
+                tr.classList.add('meal-row');
+            } else {
+                tr.classList.remove('meal-row');
+            }
         });
         
         textarea.addEventListener('blur', function() { 
@@ -1271,7 +1332,6 @@ function renderTable(){
         
         const memoCell = document.createElement('td');
         memoCell.className = 'task-cell';
-        memoCell.style.background = '#fafafa';
         const memoTextarea = document.createElement('textarea');
         memoTextarea.className = 'memo-input-cell';
         memoTextarea.value = s.memo || '';
@@ -1293,17 +1353,14 @@ function renderTable(){
             saveData();
         });
         
-        // 메모 칸 키보드 이벤트
         memoTextarea.addEventListener('keydown', function(e) {
             const idx = schedules.indexOf(s);
             
-            // Shift + Enter: 줄바꿈
             if(e.shiftKey && e.key === 'Enter'){
                 setTimeout(autoResizeMemo, 0);
                 return;
             }
             
-            // 화살표 키 (순수 화살표만)
             if(!e.ctrlKey && !e.altKey){
                 if(e.key === 'ArrowLeft'){
                     if(this.selectionStart === 0){
@@ -1855,17 +1912,29 @@ function restoreFromAutoBackup(backupKey){
     }
 }
 
+let lastRenderState = '';
+
 setInterval(() => {
     const nowH = nowInHours();
     calculateTimes();
-    let needRender = false;
+    
+    // 현재 상태 체크
+    let currentState = '';
     schedules.forEach(s => {
         if(nowH >= s.startNum && nowH < s.endNum){
-            needRender = true;
+            currentState += `active:${s.id},`;
+        }
+        if(nowH >= s.endNum && s.completed){
+            currentState += `completed:${s.id},`;
         }
     });
-    if(needRender) renderTable();
-}, 60000);
+    
+    // 상태가 변경되었을 때만 렌더링
+    if(currentState !== lastRenderState){
+        lastRenderState = currentState;
+        renderTable();
+    }
+}, 1000);
 
 loadData();
 </script>
