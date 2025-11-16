@@ -238,13 +238,17 @@
         .time-cell { background: #ecf0f1; width: 180px; } /* 시간 칸 크기 */
         .task-cell { background: white; text-align:left; vertical-align: middle; padding: 0; }
 
+        /* ========================================
+           폰트 설정 영역
+           ======================================== */
+        
         .task-input { 
             background: transparent; 
             border: none; 
             outline: none; 
             width: 100%; 
             color:#2c3e50; 
-            font-size:15px; 
+            font-size:15px; /* 👈 업무칸 폰트 크기 */
             padding: 8px;
             resize: none;
             overflow: hidden;
@@ -265,7 +269,7 @@
             outline: none; 
             width: 100%; 
             color:#2c3e50; 
-            font-size:15px; 
+            font-size:15px; /* 👈 메모칸 폰트 크기 */
             padding: 8px;
             resize: none;
             overflow: hidden;
@@ -279,6 +283,8 @@
             display: block;
             vertical-align: top;
         }
+        
+        /* ======================================== */
 
         #scheduleBody tr.dragging { opacity: 0.5; }
         #scheduleBody tr.drag-over { border-top: 3px solid #3498db; }
@@ -523,8 +529,8 @@
                     <tr>
                         <th style="width:0px;">단위</th>
                         <th style="width:0px;">시간</th>
-                        <th style="width:25%;">업무</th>
-                        <th style="width:60%;">메모</th>
+                        <th style="width:30%;">업무</th>
+                        <th style="width:55%;">메모</th>
                     </tr>
                 </thead>
                 <tbody id="scheduleBody"></tbody>
