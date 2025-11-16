@@ -294,7 +294,7 @@
         
         /* 입력할 때 - 업무+메모 둘 다 회색 */
         tr:not(.completed-row):not(.active):not(.meal-row):focus-within .task-cell { 
-            background:#f1f1f1 !important; /* 👈 입력 중 배경색 */
+            background:#e0e0e0 !important; /* 👈 입력 중 배경색 */
         }
         
         /* 현재 일정 - 업무칸과 메모칸 모두 연한 노란색 */
@@ -311,7 +311,7 @@
         
         /* 완료된 일정 - 업무칸과 메모칸 모두 회색 */
         tr.completed-row:not(.meal-row) .task-cell { 
-            background:#ececec !important; /* 👈 완료된 일정 배경색 */
+            background:#e0e0e0 !important; /* 👈 완료된 일정 배경색 */
         }
         tr.completed-row:not(.meal-row):focus-within .task-cell { 
             background:#d0d0d0 !important; /* 👈 완료된 일정 입력 중 배경색 */
@@ -323,10 +323,10 @@
             color:#aaa; /* 👈 완료된 일정 메모 텍스트 색상 */
         }
         tr.completed-row:not(.meal-row) .duration-cell { 
-            background:#ececec !important; /* 👈 완료된 일정 단위칸 배경색 */
+            background:#e8e8e8 !important; /* 👈 완료된 일정 단위칸 배경색 */
         }
         tr.completed-row:not(.meal-row) .time-cell { 
-            background:#ececec !important; /* 👈 완료된 일정 시간칸 배경색 */
+            background:#e8e8e8 !important; /* 👈 완료된 일정 시간칸 배경색 */
             color:#7f8c8d; /* 👈 완료된 일정 시간 텍스트 색상 */
         }
         
@@ -1128,7 +1128,21 @@ function renderTable(){
         durationInput.value = s.duration;
         durationInput.addEventListener('change', function() { 
             s.duration = parseFloat(this.value) || 0.5;
-            updateAllTimes();
+            calculateTimes();
+            saveData();
+            updateStats();
+            
+            // 시간칸만 업데이트 (전체 렌더링 안 함)
+            const allRows = document.querySelectorAll('#scheduleBody tr');
+            allRows.forEach((row, idx) => {
+                const sch = schedules[idx];
+                if(sch) {
+                    const timeCell = row.querySelector('.time-cell');
+                    if(timeCell) {
+                        timeCell.textContent = `${sch.start} - ${sch.end}`;
+                    }
+                }
+            });
         });
         d.appendChild(durationInput);
         tr.appendChild(d);
