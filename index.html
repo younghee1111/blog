@@ -228,8 +228,8 @@
         .row.space { margin-bottom: 15px; }
         .row .spacer { margin-left:auto; }
 
-        table { width:100%; border-collapse: collapse; margin-top: 15px; background: white; position: relative; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 15px; position: relative; }
+        table { width:100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 15px; }
         th { background: #34495e; color: white; }
 
         /* === 테이블 칸 크기 설정 === */
@@ -237,26 +237,6 @@
         .duration-cell input { text-align:center; width:100%; background: transparent; border: none; outline: none; font-size: 15px; }
         .time-cell { background: #ecf0f1; width: 180px; } /* 시간 칸 크기 */
         .task-cell { background: white; text-align:left; vertical-align: middle; padding: 0; }
-        
-        /* 리사이저 바 */
-        .resize-handle {
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 5px;
-            height: 100%;
-            cursor: col-resize;
-            background: transparent;
-            z-index: 10;
-        }
-        
-        .resize-handle:hover {
-            background: #3498db;
-        }
-        
-        .resizing .resize-handle {
-            background: #3498db;
-        }
 
         /* ========================================
            폰트 설정 영역
@@ -268,7 +248,7 @@
             outline: none; 
             width: 100%; 
             color:#2c3e50; 
-            font-size:15px; /* 👈 업무칸 폰트 크기 */
+            font-size:16px; /* 👈 업무칸 폰트 크기 */
             padding: 8px;
             resize: none;
             overflow: hidden;
@@ -289,7 +269,7 @@
             outline: none; 
             width: 100%; 
             color:#2c3e50; 
-            font-size:15px; /* 👈 메모칸 폰트 크기 */
+            font-size:16px; /* 👈 메모칸 폰트 크기 */
             padding: 8px;
             resize: none;
             overflow: hidden;
@@ -544,13 +524,18 @@
                 </div>
             </div>
 
+            <div class="row" style="margin-bottom: 10px;">
+                <button class="btn-soft-green" onclick="adjustColumnWidth(-5)">◀ 업무칸 좁게</button>
+                <button class="btn-soft-green" onclick="adjustColumnWidth(5)">업무칸 넓게 ▶</button>
+            </div>
+
             <table id="scheduleTable">
                 <thead>
                     <tr>
                         <th style="width:0px;">단위</th>
                         <th style="width:0px;">시간</th>
-                        <th style="width:25%;">업무</th>
-                        <th style="width:60%;">메모</th>
+                        <th style="width:30%;">업무</th>
+                        <th style="width:55%;">메모</th>
                     </tr>
                 </thead>
                 <tbody id="scheduleBody"></tbody>
@@ -1180,6 +1165,13 @@ function renderTable(){
         
         const task = document.createElement('td'); 
         task.className = 'task-cell';
+        
+        // 저장된 너비 적용
+        const savedWidth = localStorage.getItem('taskColumnWidth');
+        if(savedWidth) {
+            task.style.width = savedWidth + '%';
+        }
+        
         const textarea = document.createElement('textarea');
         textarea.className = 'task-input';
         textarea.value = s.task || '';
@@ -1604,6 +1596,33 @@ function copyWorkContent(){
     }).catch(err => {
         console.error('복사 실패:', err);
     });
+}
+
+function adjustColumnWidth(delta) {
+    const taskHeader = document.getElementById('taskHeader');
+    const table = document.getElementById('scheduleTable');
+    
+    // 현재 너비 가져오기
+    let currentWidth = parseFloat(localStorage.getItem('taskColumnWidth')) || 25;
+    
+    // 새 너비 계산
+    let newWidth = currentWidth + delta;
+    
+    // 최소 10%, 최대 70%로 제한
+    if(newWidth < 10) newWidth = 10;
+    if(newWidth > 70) newWidth = 70;
+    
+    // 적용
+    taskHeader.style.width = newWidth + '%';
+    
+    // 모든 업무칸에 적용
+    const taskCells = document.querySelectorAll('#scheduleBody tr td:nth-child(3)');
+    taskCells.forEach(cell => {
+        cell.style.width = newWidth + '%';
+    });
+    
+    // 저장
+    localStorage.setItem('taskColumnWidth', newWidth);
 }
 
 function updateAllTimes(){ 
@@ -2056,6 +2075,14 @@ setInterval(() => {
 
 // 전역 이벤트 리스너 (한 번만 등록)
 document.addEventListener('DOMContentLoaded', function() {
+    // 저장된 컬럼 너비 복원
+    const savedWidth = localStorage.getItem('taskColumnWidth');
+    if(savedWidth) {
+        const taskHeader = document.getElementById('taskHeader');
+        taskHeader.style.width = savedWidth + '%';
+    }
+    
+    // 키보드 이벤트 핸들러
     document.getElementById('scheduleBody').addEventListener('keydown', function(e) {
         const target = e.target;
         if(!target.classList.contains('task-input') && !target.classList.contains('memo-input-cell')) return;
