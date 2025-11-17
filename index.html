@@ -529,8 +529,8 @@
                     <tr>
                         <th style="width:0px;">단위</th>
                         <th style="width:0px;">시간</th>
-                        <th style="width:25%;">업무</th>
-                        <th style="width:60%;">메모</th>
+                        <th style="width:30%;">업무</th>
+                        <th style="width:55%;">메모</th>
                     </tr>
                 </thead>
                 <tbody id="scheduleBody"></tbody>
@@ -1117,7 +1117,7 @@ function renderTable(){
         tr.dataset.index = i;
         tr.dataset.id = s.id;
         
-        const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
+        const isMeal = /점심|점심식사|저녁|저녁식사/i.test(s.task);
         if(isMeal) tr.classList.add('meal-row');
         
         if(nowH >= s.startNum && nowH < s.endNum) {
