@@ -3,218 +3,46 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>일정관리 시스템</title>
+    <title>일정관리 시스템 (수정됨)</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>⏰</text></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        html { 
-            overflow-y: auto;
-            height: 100%;
-        }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0;
-            padding: 20px; 
-            background: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            height: 100%;
-            box-sizing: border-box;
-        }
+        /* 기존 스타일 유지 */
+        html { overflow-y: auto; height: 100%; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; display: flex; justify-content: center; height: 100%; box-sizing: border-box; }
         
-        /* 2단 레이아웃 컨테이너 */
-        .main-layout {
-            display: flex;
-            gap: 20px;
-            max-width: 1600px;
-            width: 100%;
-            margin-top: 20px;
-        }
+        .main-layout { display: flex; gap: 20px; max-width: 1600px; width: 100%; margin-top: 20px; }
+        .left-panel { flex: 0 0 1300px; min-width: 0; }
+        .right-panel { flex: 0 0 280px; display: flex; flex-direction: column; gap: 16px; min-width: 280px; }
         
-        .left-panel {
-            flex: 0 0 1300px;
-            min-width: 0;
-        }
+        .card { background: white; padding: 24px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .card-title { font-size: 16px; font-weight: 600; color: #2c3e50; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         
-        .right-panel {
-            flex: 0 0 280px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            min-width: 280px;
-        }
+        .card-title .color-selector-inline { display: flex; gap: 4px; margin-left: auto; }
+        .card-title .color-option { width: 18px; height: 18px; border-radius: 4px; cursor: pointer; border: 2px solid #e0e0e0; transition: all 0.2s; }
+        .card-title .color-option:hover { transform: scale(1.1); border-color: #bbb; }
+        .card-title .color-option.active { border-color: #2c3e50; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
         
-        .card {
-            background: white;
-            padding: 24px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+        .stats-card { flex-shrink: 0; }
+        .stat-item { padding: 12px 0; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .stat-item:last-child { border-bottom: none; }
+        .stat-label { font-size: 14px; color: #7f8c8d; }
+        .stat-value { font-size: 15px; font-weight: 600; color: #2c3e50; }
         
-        .card-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .memo-card { flex: 0; display: flex; flex-direction: column; }
+        .memo-input-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+        .memo-input { width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; transition: border-color 0.2s; resize: none; min-height: 60px; line-height: 1.6; box-sizing: border-box; }
+        .memo-input:focus { border-color: #3498db; }
+        .memo-list { display: flex; flex-direction: column; gap: 10px; }
+        .memo-item { padding: 12px; padding-right: 36px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; word-wrap: break-word; font-size: 14px; line-height: 1.5; transition: transform 0.2s; white-space: pre-wrap; word-break: break-word; cursor: move; border: 2px solid transparent; }
+        .memo-item:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .memo-item.dragging { opacity: 0.5; }
+        .memo-delete { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.9); border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #e74c3c; opacity: 0; transition: opacity 0.2s; }
+        .memo-item:hover .memo-delete { opacity: 1; }
+        .memo-delete:hover { background: #fff; }
+        .memo-empty { text-align: center; color: #95a5a6; padding: 0px; font-size: 14px; }
         
-        .card-title .color-selector-inline {
-            display: flex;
-            gap: 4px;
-            margin-left: auto;
-        }
-        
-        .card-title .color-option {
-            width: 18px;
-            height: 18px;
-            border-radius: 4px;
-            cursor: pointer;
-            border: 2px solid #e0e0e0;
-            transition: all 0.2s;
-        }
-        
-        .card-title .color-option:hover {
-            transform: scale(1.1);
-            border-color: #bbb;
-        }
-        
-        .card-title .color-option.active {
-            border-color: #2c3e50;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
-        
-        /* 오늘의 통계 카드 */
-        .stats-card {
-            flex-shrink: 0;
-        }
-        
-        .stat-item {
-            padding: 12px 0;
-            border-bottom: 1px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .stat-item:last-child {
-            border-bottom: none;
-        }
-        
-        .stat-label {
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-        
-        .stat-value {
-            font-size: 15px;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        
-        /* 메모 카드 */
-        .memo-card {
-            flex: 0;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .memo-input-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-        
-        .memo-input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
-            resize: none;
-            min-height: 60px;
-            line-height: 1.6;
-            box-sizing: border-box;
-        }
-        
-        .memo-input:focus {
-            border-color: #3498db;
-        }
-        
-        .memo-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .memo-item {
-            padding: 12px;
-            padding-right: 36px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: relative;
-            word-wrap: break-word;
-            font-size: 14px;
-            line-height: 1.5;
-            transition: transform 0.2s;
-            white-space: pre-wrap;
-            word-break: break-word;
-            cursor: move;
-            border: 2px solid transparent;
-        }
-        
-        .memo-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        
-        .memo-item.dragging {
-            opacity: 0.5;
-        }
-        
-        .memo-delete {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(255,255,255,0.9);
-            border: none;
-            border-radius: 4px;
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            color: #e74c3c;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        
-        .memo-item:hover .memo-delete {
-            opacity: 1;
-        }
-        
-        .memo-delete:hover {
-            background: #fff;
-        }
-        
-        .memo-empty {
-            text-align: center;
-            color: #95a5a6;
-            padding: 0px;
-            font-size: 14px;
-        }
-        
-        /* 기존 스타일 */
         h1 { color: #2c3e50; margin: 0 0 20px 0; font-size: 20px; text-align: center; }
-
         button { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         button:hover { filter: brightness(0.95); }
         .btn-soft-green { background:#E5F7E9; color:#1e5e2f; }
@@ -232,120 +60,34 @@
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 15px; }
         th { background: #34495e; color: white; }
 
-        /* === 테이블 칸 크기 설정 === */
-        .duration-cell { background: #ecf0f1; width: 120px; text-align:center; } /* 시간단위 칸 크기 */
+        .duration-cell { background: #ecf0f1; width: 120px; text-align:center; }
         .duration-cell input { text-align:center; width:100%; background: transparent; border: none; outline: none; font-size: 15px; }
-        .time-cell { background: #ecf0f1; width: 180px; } /* 시간 칸 크기 */
+        .time-cell { background: #ecf0f1; width: 180px; }
         .task-cell { background: white; text-align:left; vertical-align: middle; padding: 0; }
 
-        /* ========================================
-           폰트 설정 영역
-           ======================================== */
+        .task-input { background: transparent; border: none; outline: none; width: 100%; color:#1A1A1A; font-size:16px; padding: 8px; resize: none; overflow: hidden; white-space: pre-wrap; word-wrap: break-word; font-family: inherit; line-height: 1.4; min-height: auto; text-align: left; box-sizing: border-box; display: block; vertical-align: top; }
+        .memo-input-cell { background: transparent; border: none; outline: none; width: 100%; color:#1A1A1A; font-size:16px; padding: 8px; resize: none; overflow: hidden; white-space: pre-wrap; word-wrap: break-word; font-family: inherit; line-height: 1.4; min-height: auto; text-align: left; box-sizing: border-box; display: block; vertical-align: top; }
         
-        .task-input { 
-            background: transparent; 
-            border: none; 
-            outline: none; 
-            width: 100%; 
-            color:#1A1A1A; 
-            font-size:16px; /* 👈 업무칸 폰트 크기 */
-            padding: 8px;
-            resize: none;
-            overflow: hidden;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-family: inherit;
-            line-height: 1.4;
-            min-height: auto;
-            text-align: left;
-            box-sizing: border-box;
-            display: block;
-            vertical-align: top;
-        }
-
-        .memo-input-cell { 
-            background: transparent; 
-            border: none; 
-            outline: none; 
-            width: 100%; 
-            color:#1A1A1A ; 
-            font-size:16px; /* 👈 메모칸 폰트 크기 */
-            padding: 8px;
-            resize: none;
-            overflow: hidden;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-family: inherit;
-            line-height: 1.4;
-            min-height: auto;
-            text-align: left;
-            box-sizing: border-box;
-            display: block;
-            vertical-align: top;
-        }
-        
-        /* ======================================== */
-
         #scheduleBody tr.dragging { opacity: 0.5; }
         #scheduleBody tr.drag-over { border-top: 3px solid #3498db; }
         
-        /* ========================================
-           입력칸(업무/메모) 배경색 설정 영역
-           ======================================== */
+        tr:not(.completed-row):not(.active):not(.meal-row) .task-cell { background: #fdfdfd !important; }
+        tr:not(.completed-row):not(.active):not(.meal-row):focus-within .task-cell { background:#e0e0e0 !important; }
         
-        /* 기본 행은 흰색 배경 */
-        tr:not(.completed-row):not(.active):not(.meal-row) .task-cell { 
-            background: #fdfdfd !important; /* 👈 기본 배경색 */
-        }
+        tr.active:not(.completed-row):not(.meal-row) .task-cell { background:#FFF9E6 !important; }
+        tr.active:not(.completed-row):not(.meal-row):focus-within .task-cell { background:#FFF3CC !important; }
+        tr.active:not(.completed-row):not(.meal-row) .time-cell { background:#FFF7E6 !important; font-weight:700; }
         
-        /* 입력할 때 - 업무+메모 둘 다 회색 */
-        tr:not(.completed-row):not(.active):not(.meal-row):focus-within .task-cell { 
-            background:#e0e0e0 !important; /* 👈 입력 중 배경색 */
-        }
+        tr.completed-row:not(.meal-row) .task-cell { background:#e8e8e8 !important; }
+        tr.completed-row:not(.meal-row):focus-within .task-cell { background:#d4d4d4 !important; }
+        tr.completed-row:not(.meal-row) .task-input { color:#5f5e5e; }
+        tr.completed-row:not(.meal-row) .memo-input-cell { color:#5f5e5e; }
+        tr.completed-row:not(.meal-row) .duration-cell { background:#e8e8e8 !important; }
+        tr.completed-row:not(.meal-row) .time-cell { background:#e8e8e8 !important; color:#5f5e5e; }
         
-        /* 현재 일정 - 업무칸과 메모칸 모두 연한 노란색 */
-        tr.active:not(.completed-row):not(.meal-row) .task-cell { 
-            background:#FFF9E6 !important; /* 👈 현재 일정 배경색 */
-        }
-        tr.active:not(.completed-row):not(.meal-row):focus-within .task-cell { 
-            background:#FFF3CC !important; /* 👈 현재 일정 입력 중 배경색 */
-        }
-        tr.active:not(.completed-row):not(.meal-row) .time-cell { 
-            background:#FFF7E6 !important; /* 👈 현재 일정 시간칸 배경색 */
-            font-weight:700; 
-        }
+        tr.meal-row .task-cell { background:#F3E8FF !important; }
+        tr.meal-row:focus-within .task-cell { background:#E8D9FF !important; }
         
-        /* 완료된 일정 - 업무칸과 메모칸 모두 회색 */
-        tr.completed-row:not(.meal-row) .task-cell { 
-            background:#e8e8e8 !important; /* 👈 완료된 일정 배경색 */
-        }
-        tr.completed-row:not(.meal-row):focus-within .task-cell { 
-            background:#d4d4d4 !important; /* 👈 완료된 일정 입력 중 배경색 */
-        }
-        tr.completed-row:not(.meal-row) .task-input { 
-            color:#5f5e5e; /* 👈 완료된 일정 업무 텍스트 색상 */
-        }
-        tr.completed-row:not(.meal-row) .memo-input-cell { 
-            color:#5f5e5e; /* 👈 완료된 일정 메모 텍스트 색상 */
-        }
-        tr.completed-row:not(.meal-row) .duration-cell { 
-            background:#e8e8e8 !important; /* 👈 완료된 일정 단위칸 배경색 */
-        }
-        tr.completed-row:not(.meal-row) .time-cell { 
-            background:#e8e8e8 !important; /* 👈 완료된 일정 시간칸 배경색 */
-            color:#5f5e5e; /* 👈 완료된 일정 시간 텍스트 색상 */
-        }
-        
-        /* 식사 일정 - 완료 여부 관계없이 무조건 보라색 (최우선) */
-        tr.meal-row .task-cell { 
-            background:#F3E8FF !important; /* 👈 식사 일정 배경색 */
-        }
-        tr.meal-row:focus-within .task-cell { 
-            background:#E8D9FF !important; /* 👈 식사 일정 입력 중 배경색 */
-        }
-        
-        /* ======================================== */
-
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
         .modal.show { display: flex; align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
@@ -361,111 +103,24 @@
         .template-name { font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
         .template-info { font-size: 12px; color: #7f8c8d; }
 
-        .backup-item { 
-            padding: 15px; 
-            border: 1px solid #ddd; 
-            border-radius: 8px; 
-            margin-bottom: 10px; 
-            cursor: pointer; 
-            transition: 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .backup-item:hover { 
-            background: #f8f9fa; 
-            border-color: #3498db; 
-        }
-        .backup-date { 
-            font-weight: bold; 
-            color: #2c3e50; 
-        }
-        .backup-time { 
-            font-size: 12px; 
-            color: #7f8c8d; 
-            margin-top: 3px;
-        }
-        .backup-empty {
-            text-align: center;
-            color: #95a5a6;
-            padding: 40px 20px;
-            font-size: 14px;
-        }
+        .backup-item { padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .backup-item:hover { background: #f8f9fa; border-color: #3498db; }
+        .backup-date { font-weight: bold; color: #2c3e50; }
+        .backup-time { font-size: 12px; color: #7f8c8d; margin-top: 3px; }
+        .backup-empty { text-align: center; color: #95a5a6; padding: 40px 20px; font-size: 14px; }
         
-        /* 디데이 카드 */
-        .dday-card {
-            flex-shrink: 0;
-        }
-        
-        .dday-item {
-            padding: 10px 0;
-            border-bottom: 1px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .dday-item:last-child {
-            border-bottom: none;
-        }
-        
-        .dday-title {
-            font-size: 13px;
-            color: #2c3e50;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .dday-delete {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            color: #bdc3c7;
-            font-size: 18px;
-            padding: 0 4px;
-            margin-left: 8px;
-            transition: color 0.2s;
-            line-height: 1;
-        }
-        
-        .dday-delete:hover {
-            color: #e74c3c;
-        }
-        
-        .dday-badge {
-            font-size: 12px;
-            font-weight: 600;
-            padding: 4px 8px;
-            border-radius: 4px;
-            margin-left: 8px;
-        }
-        
-        .dday-today {
-            background: #e74c3c;
-            color: white;
-        }
-        
-        .dday-urgent {
-            background: #e67e22;
-            color: white;
-        }
-        
-        .dday-soon {
-            background: #f39c12;
-            color: white;
-        }
-        
-        .dday-normal {
-            background: #3498db;
-            color: white;
-        }
-        
-        .dday-passed {
-            background: #95a5a6;
-            color: white;
-        }
+        .dday-card { flex-shrink: 0; }
+        .dday-item { padding: 10px 0; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .dday-item:last-child { border-bottom: none; }
+        .dday-title { font-size: 13px; color: #2c3e50; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dday-delete { background: transparent; border: none; cursor: pointer; color: #bdc3c7; font-size: 18px; padding: 0 4px; margin-left: 8px; transition: color 0.2s; line-height: 1; }
+        .dday-delete:hover { color: #e74c3c; }
+        .dday-badge { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 4px; margin-left: 8px; }
+        .dday-today { background: #e74c3c; color: white; }
+        .dday-urgent { background: #e67e22; color: white; }
+        .dday-soon { background: #f39c12; color: white; }
+        .dday-normal { background: #3498db; color: white; }
+        .dday-passed { background: #95a5a6; color: white; }
 
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; font-size: 14px; }
@@ -478,38 +133,15 @@
         .alarm-toggle input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
         .alarm-info { margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 13px; color: #1565c0; line-height: 1.6; }
 
-        /* 반응형 */
-        @media (max-width: 900px){
-            .main-layout {
-                flex-direction: column;
-            }
-            
-            .right-panel {
-                min-width: 0;
-            }
-            
-            .memo-card {
-                min-height: 200px;
-            }
-        }
-
-        @media (max-width: 720px){ 
-            body { padding: 10px; }
-            th, td { padding:6px; font-size:14px; } 
-            button { padding: 6px 10px; font-size: 11px; }
-            .modal-content { padding: 20px; }
-            .summary-bar { flex-direction: column; gap: 10px; }
-            .card { padding: 16px; }
-        }
+        @media (max-width: 900px){ .main-layout { flex-direction: column; } .right-panel { min-width: 0; } .memo-card { min-height: 200px; } }
+        @media (max-width: 720px){ body { padding: 10px; } th, td { padding:6px; font-size:14px; } button { padding: 6px 10px; font-size: 11px; } .modal-content { padding: 20px; } .summary-bar { flex-direction: column; gap: 10px; } .card { padding: 16px; } }
     </style>
 </head>
 <body>
 <div class="main-layout">
-    <!-- 왼쪽 패널: 일정관리 시스템 -->
     <div class="left-panel">
         <div class="card">
             <h1>📅 업무일정</h1>
-
             <div class="row space">
                 <div class="row">
                     <button class="btn-soft-pink" onclick="openTemplateModal()">📋 템플릿</button>
@@ -523,7 +155,6 @@
                     <button class="btn-soft-green" onclick="copyWorkContent()">📋 업무내용</button>
                 </div>
             </div>
-
             <table id="scheduleTable">
                 <thead>
                     <tr>
@@ -538,47 +169,21 @@
         </div>
     </div>
 
-    <!-- 오른쪽 패널: 통계 & 메모 -->
     <div class="right-panel">
-        <!-- 오늘의 통계 카드 -->
         <div class="card stats-card">
-            <div class="card-title">
-                <span>📊</span>
-                <span>오늘의 통계</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">업무 시간</span>
-                <span class="stat-value" id="statWorkTime">0시간 (0개)</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">완료 일정</span>
-                <span class="stat-value" id="statCompleted">0시간 (0개)</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">남은 일정</span>
-                <span class="stat-value" id="statRemaining">0시간 (0개)</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">완료율</span>
-                <span class="stat-value" id="statProgress">0%</span>
-            </div>
+            <div class="card-title"><span>📊</span><span>오늘의 통계</span></div>
+            <div class="stat-item"><span class="stat-label">업무 시간</span><span class="stat-value" id="statWorkTime">0시간 (0개)</span></div>
+            <div class="stat-item"><span class="stat-label">완료 일정</span><span class="stat-value" id="statCompleted">0시간 (0개)</span></div>
+            <div class="stat-item"><span class="stat-label">남은 일정</span><span class="stat-value" id="statRemaining">0시간 (0개)</span></div>
+            <div class="stat-item"><span class="stat-label">완료율</span><span class="stat-value" id="statProgress">0%</span></div>
         </div>
-
-        <!-- 디데이 카드 -->
         <div class="card dday-card">
-            <div class="card-title">
-                <span>🎯</span>
-                <span>프로젝트 마감</span>
-                <button class="btn-soft-green" onclick="openAddDdayModal()" style="margin-left:auto; padding:4px 8px; font-size:11px;">+ 추가</button>
-            </div>
+            <div class="card-title"><span>🎯</span><span>프로젝트 마감</span><button class="btn-soft-green" onclick="openAddDdayModal()" style="margin-left:auto; padding:4px 8px; font-size:11px;">+ 추가</button></div>
             <div id="ddayList"></div>
         </div>
-
-        <!-- 메모 카드 -->
         <div class="card memo-card">
             <div class="card-title">
-                <span>📝</span>
-                <span>메모</span>
+                <span>📝</span><span>메모</span>
                 <div class="color-selector-inline">
                     <div class="color-option active" style="background:#FFF9E6;" data-color="#FFF9E6" onclick="setSelectedColor(this)"></div>
                     <div class="color-option" style="background:#FFE6F0;" data-color="#FFE6F0" onclick="setSelectedColor(this)"></div>
@@ -587,133 +192,17 @@
                     <div class="color-option" style="background:#F0E9FF;" data-color="#F0E9FF" onclick="setSelectedColor(this)"></div>
                 </div>
             </div>
-            <div class="memo-input-container">
-                <textarea 
-                    class="memo-input" 
-                    id="memoInput" 
-                    placeholder=""
-                    onkeydown="handleMemoKeyDown(event)"
-                ></textarea>
-            </div>
-            <div class="memo-list" id="memoList">
-                <div class="memo-empty"></div>
-            </div>
+            <div class="memo-input-container"><textarea class="memo-input" id="memoInput" placeholder="" onkeydown="handleMemoKeyDown(event)"></textarea></div>
+            <div class="memo-list" id="memoList"><div class="memo-empty"></div></div>
         </div>
     </div>
 </div>
 
-<!-- 모달들 -->
-<div id="templateModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>📋 템플릿 관리</h2>
-            <span class="modal-close" onclick="closeTemplateModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <button class="btn-soft-green" onclick="openSaveTemplateModal()" style="width:100%; margin-bottom:20px;">💾 현재 일정을 템플릿으로 저장</button>
-            <div id="templateList"></div>
-        </div>
-    </div>
-</div>
-
-<div id="saveTemplateModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>💾 템플릿 저장</h2>
-            <span class="modal-close" onclick="closeSaveTemplateModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>템플릿 이름</label>
-                <input type="text" id="templateName" placeholder="예: 평일 루틴" />
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-soft-orange" onclick="closeSaveTemplateModal()">취소</button>
-            <button class="btn-soft-green" onclick="saveTemplate()">저장</button>
-        </div>
-    </div>
-</div>
-
-<div id="alarmModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>🔔 알람 설정</h2>
-            <span class="modal-close" onclick="closeAlarmModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="alarm-section">
-                <label class="alarm-toggle">
-                    <input type="checkbox" id="alarmEnabled" onchange="toggleAlarm(this.checked)">
-                    <span style="font-weight:600;">알람 활성화</span>
-                </label>
-            </div>
-            
-            <div class="form-group">
-                <label>종료 몇 분 전에 알림</label>
-                <input type="number" id="alarmMinutes" value="5" min="1" max="60" onchange="saveAlarmSettings()">
-                <span style="margin-left:8px; color:#7f8c8d;">분</span>
-            </div>
-
-            <button class="btn-soft-blue" onclick="testAlarm()" style="width:100%; padding:12px; font-size:14px;">🔔 알람 테스트</button>
-            
-            <div class="alarm-info">
-                💡 알람을 받으려면 브라우저 알림 권한이 필요합니다.<br>
-                • 시작 알림: 각 할일 시작 시점<br>
-                • 종료 알림: 설정한 시간 전
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-soft-green" onclick="closeAlarmModal()">확인</button>
-        </div>
-    </div>
-</div>
-
-<div id="restoreModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>📂 데이터 복원</h2>
-            <span class="modal-close" onclick="closeRestoreModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>📁 파일에서 복원</label>
-                <input type="file" id="restoreFile" accept=".json" onchange="restoreFromFile(this)" style="padding:10px; background:#f8f9fa; border-radius:8px;">
-            </div>
-            
-            <div class="form-group" style="margin-top:30px;">
-                <label>🕐 자동 백업에서 복원</label>
-                <div id="autoBackupList" style="max-height:300px; overflow-y:auto;"></div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-soft-orange" onclick="closeRestoreModal()">닫기</button>
-        </div>
-    </div>
-</div>
-
-<div id="addDdayModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>🎯 디데이 추가</h2>
-            <span class="modal-close" onclick="closeAddDdayModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>프로젝트 이름</label>
-                <input type="text" id="ddayTitle" placeholder="" />
-            </div>
-            <div class="form-group">
-                <label>마감일</label>
-                <input type="date" id="ddayDate" />
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-soft-orange" onclick="closeAddDdayModal()">취소</button>
-            <button class="btn-soft-green" onclick="saveDday()">추가</button>
-        </div>
-    </div>
-</div>
+<div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📋 템플릿 관리</h2><span class="modal-close" onclick="closeTemplateModal()">&times;</span></div><div class="modal-body"><button class="btn-soft-green" onclick="openSaveTemplateModal()" style="width:100%; margin-bottom:20px;">💾 현재 일정을 템플릿으로 저장</button><div id="templateList"></div></div></div></div>
+<div id="saveTemplateModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>💾 템플릿 저장</h2><span class="modal-close" onclick="closeSaveTemplateModal()">&times;</span></div><div class="modal-body"><div class="form-group"><label>템플릿 이름</label><input type="text" id="templateName" placeholder="예: 평일 루틴" /></div></div><div class="modal-footer"><button class="btn-soft-orange" onclick="closeSaveTemplateModal()">취소</button><button class="btn-soft-green" onclick="saveTemplate()">저장</button></div></div></div>
+<div id="alarmModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>🔔 알람 설정</h2><span class="modal-close" onclick="closeAlarmModal()">&times;</span></div><div class="modal-body"><div class="alarm-section"><label class="alarm-toggle"><input type="checkbox" id="alarmEnabled" onchange="toggleAlarm(this.checked)"><span style="font-weight:600;">알람 활성화</span></label></div><div class="form-group"><label>종료 몇 분 전에 알림</label><input type="number" id="alarmMinutes" value="5" min="1" max="60" onchange="saveAlarmSettings()"><span style="margin-left:8px; color:#7f8c8d;">분</span></div><button class="btn-soft-blue" onclick="testAlarm()" style="width:100%; padding:12px; font-size:14px;">🔔 알람 테스트</button><div class="alarm-info">💡 알람을 받으려면 브라우저 알림 권한이 필요합니다.<br>• 시작 알림: 각 할일 시작 시점<br>• 종료 알림: 설정한 시간 전</div></div><div class="modal-footer"><button class="btn-soft-green" onclick="closeAlarmModal()">확인</button></div></div></div>
+<div id="restoreModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📂 데이터 복원</h2><span class="modal-close" onclick="closeRestoreModal()">&times;</span></div><div class="modal-body"><div class="form-group"><label>📁 파일에서 복원</label><input type="file" id="restoreFile" accept=".json" onchange="restoreFromFile(this)" style="padding:10px; background:#f8f9fa; border-radius:8px;"></div><div class="form-group" style="margin-top:30px;"><label>🕐 자동 백업에서 복원</label><div id="autoBackupList" style="max-height:300px; overflow-y:auto;"></div></div></div><div class="modal-footer"><button class="btn-soft-orange" onclick="closeRestoreModal()">닫기</button></div></div></div>
+<div id="addDdayModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>🎯 디데이 추가</h2><span class="modal-close" onclick="closeAddDdayModal()">&times;</span></div><div class="modal-body"><div class="form-group"><label>프로젝트 이름</label><input type="text" id="ddayTitle" placeholder="" /></div><div class="form-group"><label>마감일</label><input type="date" id="ddayDate" /></div></div><div class="modal-footer"><button class="btn-soft-orange" onclick="closeAddDdayModal()">취소</button><button class="btn-soft-green" onclick="saveDday()">추가</button></div></div></div>
 
 <script>
 /* ------------------------------
@@ -722,6 +211,7 @@
 let schedules = [];
 let templates = [];
 let draggedIndex = null;
+let dragSource = null; // 'schedule' or 'memo'
 let alarmSettings = { enabled: false, minutesBefore: 5 };
 let notifiedTasks = new Set();
 let alarmCheckInterval = null;
@@ -751,43 +241,20 @@ function nowInHours(){ const n = new Date(); return n.getHours() + n.getMinutes(
 function formatHours(totalHours){
     const hours = Math.floor(totalHours);
     const minutes = Math.round((totalHours - hours) * 60);
-    
-    if(hours > 0 && minutes > 0){
-        return `${hours}시간 ${minutes}분`;
-    } else if(hours > 0){
-        return `${hours}시간`;
-    } else if(minutes > 0){
-        return `${minutes}분`;
-    } else {
-        return `0시간`;
-    }
+    if(hours > 0 && minutes > 0) return `${hours}시간 ${minutes}분`;
+    else if(hours > 0) return `${hours}시간`;
+    else if(minutes > 0) return `${minutes}분`;
+    else return `0시간`;
 }
 
-/* ------------------------------
-   일정 객체 생성 + ID 보장
------------------------------- */
 function createSchedule(duration = 1, task = '', completed = false){
-    return {
-        id: Date.now() + Math.random(),
-        duration,
-        task,
-        memo: '',
-        completed,
-        start: '',
-        end: '',
-        startNum: 0,
-        endNum: 0
-    };
+    return { id: Date.now() + Math.random(), duration, task, memo: '', completed, start: '', end: '', startNum: 0, endNum: 0 };
 }
 
 function ensureScheduleIds(){
     schedules.forEach(s => {
-        if(!s.id){
-            s.id = Date.now() + Math.random();
-        }
-        if(s.memo === undefined){
-            s.memo = '';
-        }
+        if(!s.id) s.id = Date.now() + Math.random();
+        if(s.memo === undefined) s.memo = '';
     });
 }
 
@@ -801,28 +268,16 @@ function loadData(){
     const savedMemos = localStorage.getItem('dailyMemos');
     const savedDdays = localStorage.getItem('ddays');
     
-    if(saved){ 
-        schedules = JSON.parse(saved); 
-    } else { 
-        schedules = [ createSchedule(1, '', false) ];
-    }
+    if(saved){ schedules = JSON.parse(saved); } else { schedules = [ createSchedule(1, '', false) ]; }
     ensureScheduleIds();
-    
     if(savedTemplates){ templates = JSON.parse(savedTemplates); }
-    
     if(savedAlarmSettings){
         alarmSettings = JSON.parse(savedAlarmSettings);
         document.getElementById('alarmEnabled').checked = alarmSettings.enabled;
         document.getElementById('alarmMinutes').value = alarmSettings.minutesBefore;
     }
-    
-    if(savedMemos){
-        memos = JSON.parse(savedMemos);
-    }
-    
-    if(savedDdays){
-        ddays = JSON.parse(savedDdays);
-    }
+    if(savedMemos){ memos = JSON.parse(savedMemos); }
+    if(savedDdays){ ddays = JSON.parse(savedDdays); }
     
     ensureDailyReset();
     checkAndCreateAutoBackup();
@@ -845,9 +300,7 @@ function saveData(){
    메모 관련
 ------------------------------ */
 function setSelectedColor(element){
-    document.querySelectorAll('.color-selector-inline .color-option').forEach(opt => {
-        opt.classList.remove('active');
-    });
+    document.querySelectorAll('.color-selector-inline .color-option').forEach(opt => opt.classList.remove('active'));
     element.classList.add('active');
     selectedMemoColor = element.dataset.color;
 }
@@ -863,14 +316,7 @@ function addMemoItem(){
     const input = document.getElementById('memoInput');
     const text = input.value.trim();
     if(!text) return;
-    
-    memos.unshift({
-        id: Date.now(),
-        text,
-        color: selectedMemoColor,
-        createdAt: new Date().toISOString()
-    });
-    
+    memos.unshift({ id: Date.now(), text, color: selectedMemoColor, createdAt: new Date().toISOString() });
     input.value = '';
     input.focus();
     saveData();
@@ -886,15 +332,12 @@ function deleteMemoItem(id){
 function renderMemos(){
     const container = document.getElementById('memoList');
     container.innerHTML = '';
-    
     if(memos.length === 0){
         const emptyDiv = document.createElement('div');
         emptyDiv.className = 'memo-empty';
-        emptyDiv.textContent = '';
         container.appendChild(emptyDiv);
         return;
     }
-    
     memos.forEach((memo, index) => {
         const div = document.createElement('div');
         div.className = 'memo-item';
@@ -902,75 +345,56 @@ function renderMemos(){
         div.dataset.memoIndex = index;
         div.style.background = memo.color;
         div.appendChild(document.createTextNode(memo.text));
-        
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'memo-delete';
         deleteBtn.textContent = '×';
-        deleteBtn.addEventListener('click', function(e) { 
-            e.stopPropagation();
-            deleteMemoItem(memo.id); 
-        });
+        deleteBtn.addEventListener('click', function(e) { e.stopPropagation(); deleteMemoItem(memo.id); });
         div.appendChild(deleteBtn);
         
         div.addEventListener('dragstart', function(e) {
             draggedMemoIndex = index;
+            dragSource = 'memo';
             div.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         });
-        
-        div.addEventListener('dragover', function(e) {
-            e.preventDefault();
-        });
-        
+        div.addEventListener('dragover', function(e) { e.preventDefault(); });
         div.addEventListener('drop', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
+            if(dragSource !== 'memo') return;
             const dropIndex = parseInt(div.dataset.memoIndex, 10);
             if(draggedMemoIndex === null || draggedMemoIndex === dropIndex) return;
             
             const rect = div.getBoundingClientRect();
             const isAfter = e.clientY > rect.top + rect.height / 2;
-            
             const memoItem = memos.splice(draggedMemoIndex, 1)[0];
             let targetIndex = dropIndex;
             if(isAfter) targetIndex = dropIndex + 1;
             if(draggedMemoIndex < targetIndex) targetIndex--;
             memos.splice(targetIndex, 0, memoItem);
-            
             saveData();
             renderMemos();
         });
-        
         div.addEventListener('dragend', function() {
             const allMemos = container.querySelectorAll('.memo-item');
-            allMemos.forEach(item => {
-                item.classList.remove('dragging');
-            });
+            allMemos.forEach(item => item.classList.remove('dragging'));
             draggedMemoIndex = null;
+            dragSource = null;
         });
-        
         container.appendChild(div);
     });
-
     const tail = document.createElement('div');
     tail.style.height = '0px';
-    tail.style.border = '0px dashed transparent';
     tail.style.marginTop = '0px';
-
-    tail.addEventListener('dragover', function(e){
-        e.preventDefault();
-    });
-
+    tail.addEventListener('dragover', function(e){ e.preventDefault(); });
     tail.addEventListener('drop', function(e){
         e.preventDefault();
-        if(draggedMemoIndex === null) return;
+        if(dragSource !== 'memo' || draggedMemoIndex === null) return;
         const memoItem = memos.splice(draggedMemoIndex, 1)[0];
         memos.push(memoItem);
         saveData();
         renderMemos();
     });
-
     container.appendChild(tail);
 }
 
@@ -979,15 +403,9 @@ function renderMemos(){
 ------------------------------ */
 function renderDdays(){
     const container = document.getElementById('ddayList');
-    
-    if(ddays.length === 0){
-        container.innerHTML = '<div class="memo-empty" style="padding:0px;"></div>';
-        return;
-    }
-    
+    if(ddays.length === 0){ container.innerHTML = '<div class="memo-empty" style="padding:0px;"></div>'; return; }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const sortedDdays = ddays.map(d => {
         const deadline = new Date(d.date);
         deadline.setHours(0, 0, 0, 0);
@@ -999,19 +417,10 @@ function renderDdays(){
     container.innerHTML = sortedDdays.map(d => {
         let badgeClass = 'dday-normal';
         let badgeText = `D-${d.diffDays}`;
-        
-        if(d.diffDays < 0){
-            badgeClass = 'dday-passed';
-            badgeText = `D+${Math.abs(d.diffDays)}`;
-        } else if(d.diffDays === 0){
-            badgeClass = 'dday-today';
-            badgeText = 'D-Day';
-        } else if(d.diffDays <= 3){
-            badgeClass = 'dday-urgent';
-        } else if(d.diffDays <= 7){
-            badgeClass = 'dday-soon';
-        }
-        
+        if(d.diffDays < 0){ badgeClass = 'dday-passed'; badgeText = `D+${Math.abs(d.diffDays)}`; }
+        else if(d.diffDays === 0){ badgeClass = 'dday-today'; badgeText = 'D-Day'; }
+        else if(d.diffDays <= 3){ badgeClass = 'dday-urgent'; }
+        else if(d.diffDays <= 7){ badgeClass = 'dday-soon'; }
         return `
             <div class="dday-item">
                 <span class="dday-title" title="${d.title}">${d.title}</span>
@@ -1024,49 +433,18 @@ function renderDdays(){
     }).join('');
 }
 
-function openAddDdayModal(){
-    document.getElementById('ddayTitle').value = '';
-    document.getElementById('ddayDate').value = '';
-    document.getElementById('addDdayModal').classList.add('show');
-}
-
-function closeAddDdayModal(){
-    document.getElementById('addDdayModal').classList.remove('show');
-}
-
+function openAddDdayModal(){ document.getElementById('ddayTitle').value = ''; document.getElementById('ddayDate').value = ''; document.getElementById('addDdayModal').classList.add('show'); }
+function closeAddDdayModal(){ document.getElementById('addDdayModal').classList.remove('show'); }
 function saveDday(){
     const title = document.getElementById('ddayTitle').value.trim();
     const date = document.getElementById('ddayDate').value;
-    
-    if(!title){
-        alert('프로젝트 이름을 입력하세요.');
-        return;
-    }
-    
-    if(!date){
-        alert('마감일을 선택하세요.');
-        return;
-    }
-    
+    if(!title){ alert('프로젝트 이름을 입력하세요.'); return; }
+    if(!date){ alert('마감일을 선택하세요.'); return; }
     addDday(title, date);
     closeAddDdayModal();
 }
-
-function deleteDday(id){
-    ddays = ddays.filter(d => d.id !== id);
-    saveData();
-    renderDdays();
-}
-
-function addDday(title, date){
-    ddays.push({
-        id: Date.now(),
-        title,
-        date
-    });
-    saveData();
-    renderDdays();
-}
+function deleteDday(id){ ddays = ddays.filter(d => d.id !== id); saveData(); renderDdays(); }
+function addDday(title, date){ ddays.push({ id: Date.now(), title, date }); saveData(); renderDdays(); }
 
 /* ------------------------------
    일정 계산 / 렌더링
@@ -1088,27 +466,6 @@ function renderTable(){
     tbody.innerHTML = '';
     const nowH = nowInHours();
     
-    // 완료 상태 자동 관리
-    let needSave = false;
-    schedules.forEach(s => {
-        // 아직 시작되지 않은 일정은 미완료
-        if(nowH < s.startNum && s.completed) {
-            s.completed = false;
-            needSave = true;
-        }
-        // 현재 진행 중이면 미완료
-        if(nowH >= s.startNum && nowH < s.endNum && s.completed) {
-            s.completed = false;
-            needSave = true;
-        }
-        // 시간이 완전히 지나면 완료
-        if(nowH >= s.endNum && !s.completed) {
-            s.completed = true;
-            needSave = true;
-        }
-    });
-    if(needSave) saveData();
-    
     updateStats();
     
     schedules.forEach((s, i) => {
@@ -1119,11 +476,7 @@ function renderTable(){
         
         const isMeal = /점심|점심식사|저녁|저녁식사/i.test(s.task);
         if(isMeal) tr.classList.add('meal-row');
-        
-        if(nowH >= s.startNum && nowH < s.endNum) {
-            tr.classList.add('active');
-        }
-        
+        if(nowH >= s.startNum && nowH < s.endNum) tr.classList.add('active');
         if(s.completed) tr.classList.add('completed-row');
 
         const d = document.createElement('td'); 
@@ -1137,18 +490,7 @@ function renderTable(){
             calculateTimes();
             saveData();
             updateStats();
-            
-            // 시간칸만 업데이트 (전체 렌더링 안 함)
-            const allRows = document.querySelectorAll('#scheduleBody tr');
-            allRows.forEach((row, idx) => {
-                const sch = schedules[idx];
-                if(sch) {
-                    const timeCell = row.querySelector('.time-cell');
-                    if(timeCell) {
-                        timeCell.textContent = `${sch.start} - ${sch.end}`;
-                    }
-                }
-            });
+            updateTimeDisplay();
         });
         d.appendChild(durationInput);
         tr.appendChild(d);
@@ -1167,40 +509,34 @@ function renderTable(){
         
         const autoResize = () => {
             textarea.style.height = '1px';
-            const scrollHeight = textarea.scrollHeight;
-            textarea.style.height = scrollHeight + 'px';
+            textarea.style.height = textarea.scrollHeight + 'px';
         };
         
         textarea.addEventListener('input', function() { 
             s.task = this.value;
             autoResize();
-            
-            // 식사 키워드 실시간 반영
             const isMeal = /점심|점심식사|저녁|저녁식사/i.test(s.task);
-            if(isMeal){
-                tr.classList.add('meal-row');
-            } else {
-                tr.classList.remove('meal-row');
-            }
+            if(isMeal) tr.classList.add('meal-row'); else tr.classList.remove('meal-row');
         });
         
-        textarea.addEventListener('blur', function() { 
-            s.task = this.value;
-            saveData();
-        });
-        
+        textarea.addEventListener('blur', function() { s.task = this.value; saveData(); });
         setTimeout(autoResize, 0);
         
+        // 키보드 이벤트 (개별 등록 - 중복 방지)
         textarea.addEventListener('keydown', function(e) {
-            if(e.shiftKey && e.key === 'Enter'){
-                setTimeout(autoResize, 0);
-                return;
-            }
+            const currentRow = this.closest('tr');
+            const tbody = currentRow.parentNode;
+            // 중요: 인덱스를 현재 DOM 기준으로 새로 구함
+            const i = Array.from(tbody.children).indexOf(currentRow);
+
+            if(e.shiftKey && e.key === 'Enter'){ setTimeout(autoResize, 0); return; }
             
-            // 시간 단위 조절
-            if(e.ctrlKey && e.key === '='){
+            // 시간 조절
+            if(e.ctrlKey && ['=','-','1','2','3','4'].includes(e.key)){
                 e.preventDefault();
-                s.duration = Math.min(24, s.duration + 0.5);
+                if(e.key === '=') s.duration = Math.min(24, s.duration + 0.5);
+                else if(e.key === '-') s.duration = Math.max(0.5, s.duration - 0.5);
+                else s.duration = {'1':0.5,'2':1,'3':2,'4':3}[e.key];
                 calculateTimes();
                 saveData();
                 updateStats();
@@ -1209,67 +545,38 @@ function renderTable(){
                 return;
             }
             
-            if(e.ctrlKey && e.key === '-'){
+            // 행 이동 (깜빡임 없는 로직 적용)
+            if(e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')){
                 e.preventDefault();
-                s.duration = Math.max(0.5, s.duration - 0.5);
-                calculateTimes();
-                saveData();
-                updateStats();
-                updateTimeDisplay();
-                setTimeout(() => textarea.focus(), 10);
-                return;
-            }
-            
-            if(e.ctrlKey && ['1','2','3','4'].includes(e.key)){
-                e.preventDefault();
-                const timeMap = {'1': 0.5, '2': 1, '3': 2, '4': 3};
-                s.duration = timeMap[e.key];
-                calculateTimes();
-                saveData();
-                updateStats();
-                updateTimeDisplay();
-                setTimeout(() => textarea.focus(), 10);
-                return;
-            }
-            
-            // 행 이동
-            if(e.altKey && e.key === 'ArrowUp'){
-                e.preventDefault();
-                if(i === 0) return;
                 s.task = textarea.value;
-                const cursorPos = textarea.selectionStart;
-                [schedules[i - 1], schedules[i]] = [schedules[i], schedules[i - 1]];
+                
+                if(e.key === 'ArrowUp' && i > 0){
+                    // 데이터 교체
+                    [schedules[i - 1], schedules[i]] = [schedules[i], schedules[i - 1]];
+                    // DOM 노드 이동 (RenderTable 호출 안함)
+                    const prevRow = currentRow.previousElementSibling;
+                    tbody.insertBefore(currentRow, prevRow);
+                    // 인덱스 속성 업데이트
+                    currentRow.dataset.index = i - 1;
+                    prevRow.dataset.index = i;
+                } 
+                else if(e.key === 'ArrowDown' && i < schedules.length - 1){
+                     // 데이터 교체
+                    [schedules[i], schedules[i + 1]] = [schedules[i + 1], schedules[i]];
+                    // DOM 노드 이동
+                    const nextRow = currentRow.nextElementSibling;
+                    tbody.insertBefore(nextRow, currentRow);
+                    // 인덱스 속성 업데이트
+                    currentRow.dataset.index = i + 1;
+                    nextRow.dataset.index = i;
+                } else {
+                    return;
+                }
+                
                 calculateTimes();
+                updateTimeDisplay();
                 saveData();
-                skipCompletedCheck = true;
-                renderTable();
-                setTimeout(() => {
-                    const inputs = document.querySelectorAll('.task-input');
-                    if(inputs[i - 1]) {
-                        inputs[i - 1].focus();
-                        inputs[i - 1].setSelectionRange(cursorPos, cursorPos);
-                    }
-                }, 50);
-                return;
-            }
-            
-            if(e.altKey && e.key === 'ArrowDown'){
-                e.preventDefault();
-                if(i >= schedules.length - 1) return;
-                s.task = textarea.value;
-                const cursorPos = textarea.selectionStart;
-                [schedules[i], schedules[i + 1]] = [schedules[i + 1], schedules[i]];
-                calculateTimes();
-                saveData();
-                skipCompletedCheck = true;
-                renderTable();
-                setTimeout(() => {
-                    const inputs = document.querySelectorAll('.task-input');
-                    if(inputs[i + 1]) {
-                        inputs[i + 1].focus();
-                        inputs[i + 1].setSelectionRange(cursorPos, cursorPos);
-                    }
-                }, 50);
+                textarea.focus(); // 포커스 유지
                 return;
             }
             
@@ -1277,24 +584,17 @@ function renderTable(){
             if(e.ctrlKey && e.key === 'd'){
                 e.preventDefault();
                 s.task = textarea.value;
-                
-                lastOperationTime = Date.now();
-                
                 const newSchedule = createSchedule(s.duration, s.task, false);
                 if(s.memo) newSchedule.memo = s.memo;
                 schedules.splice(i + 1, 0, newSchedule);
                 ensureScheduleIds();
                 calculateTimes();
                 saveData();
-                skipCompletedCheck = true;
                 renderTable();
                 setTimeout(() => {
                     const inputs = document.querySelectorAll('.task-input');
-                    if(inputs[i + 1]) {
-                        inputs[i + 1].focus();
-                        inputs[i + 1].setSelectionRange(0, 0);
-                    }
-                }, 50);
+                    if(inputs[i + 1]) { inputs[i + 1].focus(); inputs[i + 1].setSelectionRange(0, 0); }
+                }, 20);
                 return;
             }
             
@@ -1302,96 +602,53 @@ function renderTable(){
             if(e.ctrlKey && e.key === 'Backspace'){
                 e.preventDefault();
                 if(schedules.length === 1) return;
-                
-                lastOperationTime = Date.now();
-                
-                deletedHistory.push({
-                    index: i,
-                    data: JSON.parse(JSON.stringify(s))
-                });
-                
+                deletedHistory.push({ index: i, data: JSON.parse(JSON.stringify(s)) });
                 schedules.splice(i, 1);
                 ensureScheduleIds();
                 calculateTimes();
                 saveData();
-                skipCompletedCheck = true;
                 renderTable();
-                
                 setTimeout(() => {
                     const inputs = document.querySelectorAll('.task-input');
                     const focusIndex = Math.min(i, inputs.length - 1);
-                    if(inputs[focusIndex]) {
-                        inputs[focusIndex].focus();
-                        inputs[focusIndex].setSelectionRange(0, 0);
-                    }
-                }, 50);
+                    if(inputs[focusIndex]) { inputs[focusIndex].focus(); inputs[focusIndex].setSelectionRange(0, 0); }
+                }, 20);
                 return;
             }
             
-            // 행 추가
+            // 행 추가 (Enter)
             if(e.ctrlKey && e.key === 'Enter'){
                 e.preventDefault();
                 s.task = textarea.value;
-                
-                lastOperationTime = Date.now();
-                
                 const newSchedule = createSchedule(1, '', false);
                 schedules.splice(i + 1, 0, newSchedule);
                 ensureScheduleIds();
                 calculateTimes();
                 saveData();
-                skipCompletedCheck = true;
                 renderTable();
                 setTimeout(() => {
                     const inputs = document.querySelectorAll('.task-input');
                     if(inputs[i + 1]) inputs[i + 1].focus();
-                }, 50);
+                }, 20);
                 return;
             }
             
+            // 일반 엔터 및 화살표 (포커스 이동)
             if(e.key === 'Enter' && !e.shiftKey){
                 e.preventDefault();
                 s.task = this.value;
                 saveData();
-                
-                const idx = schedules.indexOf(s);
-                const nextIndex = idx + 1;
-                if(nextIndex < schedules.length){
-                    setTimeout(() => {
-                        const inputs = document.querySelectorAll('.task-input');
-                        if(inputs[nextIndex]) inputs[nextIndex].focus();
-                    }, 0);
-                }
+                const inputs = document.querySelectorAll('.task-input');
+                if(inputs[i + 1]) inputs[i + 1].focus();
                 return;
             }
-            
             if(e.key === 'ArrowDown' && !e.altKey){
-                e.preventDefault();
-                s.task = this.value;
-                saveData();
-                
-                const idx = schedules.indexOf(s);
-                const nextIndex = idx + 1;
-                if(nextIndex < schedules.length){
-                    setTimeout(() => {
-                        const inputs = document.querySelectorAll('.task-input');
-                        if(inputs[nextIndex]) inputs[nextIndex].focus();
-                    }, 0);
-                }
+                const inputs = document.querySelectorAll('.task-input');
+                if(inputs[i + 1]) inputs[i + 1].focus();
             } 
             else if(e.key === 'ArrowUp' && !e.altKey){
-                e.preventDefault();
-                s.task = this.value;
-                saveData();
-                
-                const idx = schedules.indexOf(s);
-                const prevIndex = idx - 1;
-                if(prevIndex >= 0){
-                    setTimeout(() => {
-                        const inputs = document.querySelectorAll('.task-input');
-                        if(inputs[prevIndex]) inputs[prevIndex].focus();
-                    }, 0);
-                }
+                const inputs = document.querySelectorAll('.task-input');
+                if(inputs[i - 1]) inputs[i - 1].focus();
             }
         });
         
@@ -1407,81 +664,87 @@ function renderTable(){
         
         const autoResizeMemo = () => {
             memoTextarea.style.height = '1px';
-            const scrollHeight = memoTextarea.scrollHeight;
-            memoTextarea.style.height = scrollHeight + 'px';
+            memoTextarea.style.height = memoTextarea.scrollHeight + 'px';
         };
         
-        memoTextarea.addEventListener('input', function() {
-            s.memo = this.value;
-            autoResizeMemo();
-        });
-        
-        memoTextarea.addEventListener('blur', function() {
-            s.memo = this.value;
-            saveData();
-        });
+        memoTextarea.addEventListener('input', function() { s.memo = this.value; autoResizeMemo(); });
+        memoTextarea.addEventListener('blur', function() { s.memo = this.value; saveData(); });
         
         memoTextarea.addEventListener('keydown', function(e) {
-            const idx = schedules.indexOf(s);
+            // 메모칸에서도 인덱스를 새로 구함
+            const currentRow = this.closest('tr');
+            const idx = parseInt(currentRow.dataset.index);
+
+            if(e.shiftKey && e.key === 'Enter'){ setTimeout(autoResizeMemo, 0); return; }
             
-            if(e.shiftKey && e.key === 'Enter'){
-                setTimeout(autoResizeMemo, 0);
+            // 행 추가, 삭제는 메모칸에서도 가능하도록
+             if(e.ctrlKey && e.key === 'Enter'){
+                e.preventDefault();
+                s.memo = this.value;
+                const newSchedule = createSchedule(1, '', false);
+                schedules.splice(idx + 1, 0, newSchedule);
+                ensureScheduleIds();
+                calculateTimes();
+                saveData();
+                renderTable();
+                setTimeout(() => {
+                    const inputs = document.querySelectorAll('.task-input');
+                    if(inputs[idx + 1]) inputs[idx + 1].focus();
+                }, 20);
                 return;
             }
-            
+             if(e.ctrlKey && e.key === 'Backspace'){
+                e.preventDefault();
+                if(schedules.length === 1) return;
+                deletedHistory.push({ index: idx, data: JSON.parse(JSON.stringify(schedules[idx])) });
+                schedules.splice(idx, 1);
+                ensureScheduleIds();
+                calculateTimes();
+                saveData();
+                renderTable();
+                 setTimeout(() => {
+                    const inputs = document.querySelectorAll('.task-input');
+                    const focusIndex = Math.min(idx, inputs.length - 1);
+                    if(inputs[focusIndex]) inputs[focusIndex].focus();
+                }, 20);
+                return;
+            }
+
             if(!e.ctrlKey && !e.altKey){
                 if(e.key === 'ArrowLeft'){
                     if(this.selectionStart === 0){
                         e.preventDefault();
                         s.memo = this.value;
                         saveData();
-                        
-                        setTimeout(() => {
-                            const taskInputs = document.querySelectorAll('.task-input');
-                            if(taskInputs[idx]) {
-                                taskInputs[idx].focus();
-                                taskInputs[idx].selectionStart = taskInputs[idx].value.length;
-                                taskInputs[idx].selectionEnd = taskInputs[idx].value.length;
-                            }
-                        }, 0);
+                        const taskInputs = document.querySelectorAll('.task-input');
+                        if(taskInputs[idx]) {
+                            taskInputs[idx].focus();
+                            taskInputs[idx].selectionStart = taskInputs[idx].value.length;
+                            taskInputs[idx].selectionEnd = taskInputs[idx].value.length;
+                        }
                     }
                     return;
                 }
-                
                 if(e.key === 'ArrowUp'){
                     e.preventDefault();
                     s.memo = this.value;
                     saveData();
-                    
-                    const prevIndex = idx - 1;
-                    if(prevIndex >= 0){
-                        setTimeout(() => {
-                            const memoInputs = document.querySelectorAll('.memo-input-cell');
-                            if(memoInputs[prevIndex]) memoInputs[prevIndex].focus();
-                        }, 0);
-                    }
+                    const memoInputs = document.querySelectorAll('.memo-input-cell');
+                    if(memoInputs[idx - 1]) memoInputs[idx - 1].focus();
                     return;
                 }
-                
                 if(e.key === 'ArrowDown'){
                     e.preventDefault();
                     s.memo = this.value;
                     saveData();
-                    
-                    const nextIndex = idx + 1;
-                    if(nextIndex < schedules.length){
-                        setTimeout(() => {
-                            const memoInputs = document.querySelectorAll('.memo-input-cell');
-                            if(memoInputs[nextIndex]) memoInputs[nextIndex].focus();
-                        }, 0);
-                    }
+                    const memoInputs = document.querySelectorAll('.memo-input-cell');
+                    if(memoInputs[idx + 1]) memoInputs[idx + 1].focus();
                     return;
                 }
             }
         });
         
         setTimeout(autoResizeMemo, 0);
-        
         memoCell.appendChild(memoTextarea);
         tr.appendChild(memoCell);
         
@@ -1496,12 +759,14 @@ function renderTable(){
 
 function handleDragStart(e){
     draggedIndex = parseInt(this.dataset.index, 10);
+    dragSource = 'schedule';
     this.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
 }
 
 function handleDragOver(e){
     if(e.preventDefault) e.preventDefault();
+    if(dragSource !== 'schedule') return; 
     e.dataTransfer.dropEffect = 'move';
     this.classList.add('drag-over');
     return false;
@@ -1509,6 +774,8 @@ function handleDragOver(e){
 
 function handleDrop(e){
     if(e.stopPropagation) e.stopPropagation();
+    if(dragSource !== 'schedule') return; 
+
     const dropIndex = parseInt(this.dataset.index, 10);
     if(draggedIndex !== dropIndex){
         const item = schedules.splice(draggedIndex, 1)[0];
@@ -1522,26 +789,19 @@ function handleDragEnd(e){
     document.querySelectorAll('#scheduleBody tr').forEach(tr => {
         tr.classList.remove('dragging', 'drag-over');
     });
+    dragSource = null;
 }
 
 function deleteRowById(rowId){
     const index = schedules.findIndex(s => s.id === rowId);
     if(index === -1) return;
     if(schedules.length === 1) return;
-    
-    deletedHistory.push({
-        index,
-        data: JSON.parse(JSON.stringify(schedules[index]))
-    });
-    
+    deletedHistory.push({ index, data: JSON.parse(JSON.stringify(schedules[index])) });
     schedules.splice(index, 1);
     ensureScheduleIds();
     calculateTimes();
     saveData();
-    
-    skipCompletedCheck = true;
     renderTable();
-    
     setTimeout(() => {
         const inputs = document.querySelectorAll('.task-input');
         const focusIndex = Math.min(index, inputs.length - 1);
@@ -1550,9 +810,7 @@ function deleteRowById(rowId){
 }
 
 function undoDelete(){
-    if(deletedHistory.length === 0){
-        return;
-    }
+    if(deletedHistory.length === 0) return;
     const last = deletedHistory.pop();
     const insertIndex = Math.min(last.index, schedules.length);
     schedules.splice(insertIndex, 0, last.data);
@@ -1560,7 +818,6 @@ function undoDelete(){
     calculateTimes();
     saveData();
     renderTable();
-    
     setTimeout(() => {
         const inputs = document.querySelectorAll('.task-input');
         if(inputs[insertIndex]) inputs[insertIndex].focus();
@@ -1571,19 +828,10 @@ function copyWorkContent(){
     let content = '';
     schedules.forEach(s => {
         const isMeal = /점심|점심식사|저녁|저녁식사|회의/i.test(s.task);
-        if(!isMeal && s.task.trim()){
-            content += `- ${s.task}(${s.duration}시간)\n`;
-        }
+        if(!isMeal && s.task.trim()) content += `- ${s.task}(${s.duration}시간)\n`;
     });
-    
-    if(!content){
-        return;
-    }
-    
-    navigator.clipboard.writeText(content).then(() => {
-    }).catch(err => {
-        console.error('복사 실패:', err);
-    });
+    if(!content) return;
+    navigator.clipboard.writeText(content).catch(err => console.error('복사 실패:', err));
 }
 
 function updateAllTimes(){ 
@@ -1600,53 +848,62 @@ function updateTimeDisplay(){
         if(sch) {
             const timeCell = row.querySelector('.time-cell');
             const durationInput = row.querySelector('.duration-cell input');
-            if(timeCell) {
-                timeCell.textContent = `${sch.start} - ${sch.end}`;
-            }
-            if(durationInput) {
-                durationInput.value = sch.duration;
-            }
+            if(timeCell) timeCell.textContent = `${sch.start} - ${sch.end}`;
+            if(durationInput && document.activeElement !== durationInput) durationInput.value = sch.duration;
         }
     });
 }
 
+// 스타일만 업데이트하는 함수 (RenderTable 대체)
+function updateRowStyles() {
+    const nowH = nowInHours();
+    let needSave = false;
+    
+    const rows = document.querySelectorAll('#scheduleBody tr');
+    
+    schedules.forEach((s, i) => {
+        // 완료 상태 자동 관리 로직
+        let changed = false;
+        if(nowH < s.startNum && s.completed) { s.completed = false; changed = true; }
+        if(nowH >= s.startNum && nowH < s.endNum && s.completed) { s.completed = false; changed = true; }
+        if(nowH >= s.endNum && !s.completed) { s.completed = true; changed = true; }
+        if(changed) needSave = true;
+
+        const tr = rows[i];
+        if(!tr) return;
+
+        // Active Check
+        if(nowH >= s.startNum && nowH < s.endNum) tr.classList.add('active');
+        else tr.classList.remove('active');
+
+        // Completed Check
+        if(s.completed) tr.classList.add('completed-row');
+        else tr.classList.remove('completed-row');
+    });
+
+    if(needSave) saveData();
+}
+
 function updateStats(){
     const nowH = nowInHours();
-    
-    let allHours = 0;
-    let allCount = schedules.length;
-    let remainingHours = 0;
-    let remainingCount = 0;
-    let completedHours = 0;
-    let completedCount = 0;
+    let allHours = 0, allCount = schedules.length;
+    let remainingHours = 0, remainingCount = 0;
+    let completedHours = 0, completedCount = 0;
     let wholeCompletedHours = 0;
 
     schedules.forEach(s => {
         const isMeal = /점심|점심식사|저녁|저녁식사|식사/i.test(s.task);
         allHours += s.duration;
-        if(s.completed){
-            wholeCompletedHours += s.duration;
-        }
-        if(nowH < s.endNum){
-            remainingHours += s.duration;
-            remainingCount++;
-        }
-        if(s.completed && !isMeal){
-            completedHours += s.duration;
-            completedCount++;
-        }
+        if(s.completed) wholeCompletedHours += s.duration;
+        if(nowH < s.endNum){ remainingHours += s.duration; remainingCount++; }
+        if(s.completed && !isMeal){ completedHours += s.duration; completedCount++; }
     });
 
-    const progressPercent = allHours > 0
-        ? Math.round((wholeCompletedHours / allHours) * 100)
-        : 0;
+    const progressPercent = allHours > 0 ? Math.round((wholeCompletedHours / allHours) * 100) : 0;
 
-    document.getElementById('statWorkTime').textContent =
-        `${formatHours(allHours)} (${allCount}개)`;
-    document.getElementById('statCompleted').textContent =
-        `${formatHours(completedHours)} (${completedCount}개)`;
-    document.getElementById('statRemaining').textContent =
-        `${formatHours(remainingHours)} (${remainingCount}개)`;
+    document.getElementById('statWorkTime').textContent = `${formatHours(allHours)} (${allCount}개)`;
+    document.getElementById('statCompleted').textContent = `${formatHours(completedHours)} (${completedCount}개)`;
+    document.getElementById('statRemaining').textContent = `${formatHours(remainingHours)} (${remainingCount}개)`;
     document.getElementById('statProgress').textContent = `${progressPercent}%`;
 }
 
@@ -1670,32 +927,17 @@ function closeSaveTemplateModal(){ document.getElementById('saveTemplateModal').
 function saveTemplate(){
     const name = document.getElementById('templateName').value.trim();
     if(!name){ alert('템플릿 이름을 입력하세요.'); return; }
-    
-    templates.push({
-        id: Date.now(),
-        name: name,
-        schedules: JSON.parse(JSON.stringify(schedules)),
-        createdAt: new Date().toISOString()
-    });
-    
-    saveData();
-    closeSaveTemplateModal();
-    renderTemplateList();
-    alert('템플릿이 저장되었습니다!');
+    templates.push({ id: Date.now(), name: name, schedules: JSON.parse(JSON.stringify(schedules)), createdAt: new Date().toISOString() });
+    saveData(); closeSaveTemplateModal(); renderTemplateList(); alert('템플릿이 저장되었습니다!');
 }
 
 function renderTemplateList(){
     const container = document.getElementById('templateList');
-    if(templates.length === 0){
-        container.innerHTML = '<p style="color:#7f8c8d; text-align:center;">저장된 템플릿이 없습니다.</p>';
-        return;
-    }
-    
+    if(templates.length === 0){ container.innerHTML = '<p style="color:#7f8c8d; text-align:center;">저장된 템플릿이 없습니다.</p>'; return; }
     container.innerHTML = templates.map((t, i) => `
         <div class="template-item" onclick="loadTemplate(${i})">
             <div class="template-name">${t.name}</div>
-            <div class="template-info">
-                ${t.schedules.length}개 일정 · ${new Date(t.createdAt).toLocaleDateString()}
+            <div class="template-info">${t.schedules.length}개 일정 · ${new Date(t.createdAt).toLocaleDateString()}
                 <button class="btn-danger" onclick="event.stopPropagation(); deleteTemplate(${i})" style="float:right; padding:4px 8px; font-size:11px;">삭제</button>
             </div>
         </div>
@@ -1706,96 +948,49 @@ function loadTemplate(index){
     if(confirm('현재 일정을 템플릿으로 교체하시겠습니까?')){
         const template = templates[index];
         schedules = JSON.parse(JSON.stringify(template.schedules));
-        ensureScheduleIds();
-        updateAllTimes();
-        closeTemplateModal();
-        alert('템플릿이 적용되었습니다!');
+        ensureScheduleIds(); updateAllTimes(); closeTemplateModal(); alert('템플릿이 적용되었습니다!');
     }
 }
 
-function deleteTemplate(index){ 
-    if(confirm('이 템플릿을 삭제하시겠습니까?')){ 
-        templates.splice(index, 1); 
-        saveData(); 
-        renderTemplateList(); 
-    } 
-}
+function deleteTemplate(index){ if(confirm('이 템플릿을 삭제하시겠습니까?')){ templates.splice(index, 1); saveData(); renderTemplateList(); } }
 
 async function initAlarmSystem(){
-    if('Notification' in window && Notification.permission === 'default'){
-        await Notification.requestPermission();
-    }
+    if('Notification' in window && Notification.permission === 'default'){ await Notification.requestPermission(); }
     if(alarmSettings.enabled) startAlarmCheck();
 }
 
 function startAlarmCheck(){
     if(alarmCheckInterval) clearInterval(alarmCheckInterval);
-    alarmCheckInterval = setInterval(() => {
-        checkAndNotify(nowInHours());
-    }, 10000);
+    alarmCheckInterval = setInterval(() => { checkAndNotify(nowInHours()); }, 10000);
     checkAndNotify(nowInHours());
 }
 
-function stopAlarmCheck(){ 
-    if(alarmCheckInterval){ 
-        clearInterval(alarmCheckInterval); 
-        alarmCheckInterval = null; 
-    } 
-}
+function stopAlarmCheck(){ if(alarmCheckInterval){ clearInterval(alarmCheckInterval); alarmCheckInterval = null; } }
 
 function checkAndNotify(nowH){
     if(!alarmSettings.enabled || Notification.permission !== 'granted') return;
-    
     calculateTimes();
-    
     schedules.forEach((s) => {
         if(s.completed) return;
-        
         const startKey = `start-${s.id}`;
         const endKey   = `end-${s.id}`;
-        
-        if(
-            nowH >= s.startNum &&
-            nowH <  s.startNum + WINDOW &&
-            !notifiedTasks.has(startKey)
-        ){
-            notifiedTasks.add(startKey);
-            showStartNotification(s);
+        if(nowH >= s.startNum && nowH < s.startNum + WINDOW && !notifiedTasks.has(startKey)){
+            notifiedTasks.add(startKey); showStartNotification(s);
         }
-        
         const alarmTime = s.endNum - (alarmSettings.minutesBefore / 60);
-        if(
-            nowH >= alarmTime &&
-            nowH <  alarmTime + WINDOW &&
-            !notifiedTasks.has(endKey)
-        ){
-            notifiedTasks.add(endKey);
-            showEndNotification(s);
+        if(nowH >= alarmTime && nowH < alarmTime + WINDOW && !notifiedTasks.has(endKey)){
+            notifiedTasks.add(endKey); showEndNotification(s);
         }
     });
 }
 
 function showStartNotification(currentTask){
-    const notification = new Notification('🎯 할일 시작', {
-        body: `[현재 할일]\n${currentTask.task || '할일 없음'}`,
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🎯</text></svg>',
-        tag: 'schedule-start-' + Date.now(),
-        requireInteraction: true,
-        silent: false
-    });
-    
+    const notification = new Notification('🎯 할일 시작', { body: `[현재 할일]\n${currentTask.task || '할일 없음'}`, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🎯</text></svg>', tag: 'schedule-start-' + Date.now(), requireInteraction: true, silent: false });
     notification.onclick = function(){ window.focus(); this.close(); };
 }
 
 function showEndNotification(currentTask){
-    const notification = new Notification(`📅 ${alarmSettings.minutesBefore}분 전 종료`, {
-        body: `[현재 할일]\n${currentTask.task || '할일 없음'}`,
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>',
-        tag: 'schedule-end-' + Date.now(),
-        requireInteraction: true,
-        silent: false
-    });
-    
+    const notification = new Notification(`📅 ${alarmSettings.minutesBefore}분 전 종료`, { body: `[현재 할일]\n${currentTask.task || '할일 없음'}`, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>', tag: 'schedule-end-' + Date.now(), requireInteraction: true, silent: false });
     notification.onclick = function(){ window.focus(); this.close(); };
 }
 
@@ -1803,111 +998,56 @@ function openAlarmModal(){ document.getElementById('alarmModal').classList.add('
 function closeAlarmModal(){ document.getElementById('alarmModal').classList.remove('show'); }
 
 function toggleAlarm(enabled){
-    alarmSettings.enabled = enabled;
-    saveAlarmSettings();
-    if(enabled) initAlarmSystem();
-    else stopAlarmCheck();
+    alarmSettings.enabled = enabled; saveAlarmSettings();
+    if(enabled) initAlarmSystem(); else stopAlarmCheck();
 }
 
 function saveAlarmSettings(){
     alarmSettings.minutesBefore = parseInt(document.getElementById('alarmMinutes').value) || 5;
     alarmSettings.enabled = document.getElementById('alarmEnabled').checked;
     saveData();
-    if(alarmSettings.enabled){ 
-        startAlarmCheck(); 
-        alert('알람 설정이 저장되었습니다!');
-    } else {
-        stopAlarmCheck();
-    }
+    if(alarmSettings.enabled){ startAlarmCheck(); alert('알람 설정이 저장되었습니다!'); } else { stopAlarmCheck(); }
 }
 
 async function testAlarm(){
     if(Notification.permission !== 'granted'){
         const permission = await Notification.requestPermission();
-        if(permission !== 'granted'){ 
-            alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.'); 
-            return; 
-        }
+        if(permission !== 'granted'){ alert('알림 권한이 거부되었습니다.'); return; }
     }
-    
-    const notification = new Notification('🔔 알람 테스트', {
-        body: `종료 ${alarmSettings.minutesBefore}분 전\n\n다음 할일: 테스트 할일`,
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🔔</text></svg>',
-        tag: 'test-alarm-' + Date.now(),
-        requireInteraction: true
-    });
-    
+    const notification = new Notification('🔔 알람 테스트', { body: `종료 ${alarmSettings.minutesBefore}분 전\n\n다음 할일: 테스트 할일`, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🔔</text></svg>', tag: 'test-alarm-' + Date.now(), requireInteraction: true });
     notification.onclick = function(){ window.focus(); this.close(); };
 }
 
 function downloadBackup(){
-    const backupData = {
-        version: '1.0',
-        date: new Date().toISOString(),
-        schedules: schedules,
-        templates: templates,
-        memos: memos,
-        alarmSettings: alarmSettings
-    };
-    
+    const backupData = { version: '1.0', date: new Date().toISOString(), schedules, templates, memos, alarmSettings };
     const dataStr = JSON.stringify(backupData, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    
-    const today = new Date().toISOString().split('T')[0];
-    link.href = url;
-    link.download = `일정백업_${today}.json`;
-    link.click();
-    
-    URL.revokeObjectURL(url);
+    link.href = url; link.download = `일정백업_${new Date().toISOString().split('T')[0]}.json`; link.click(); URL.revokeObjectURL(url);
 }
 
-function openRestoreModal(){
-    renderAutoBackupList();
-    document.getElementById('restoreModal').classList.add('show');
-}
-
-function closeRestoreModal(){
-    document.getElementById('restoreModal').classList.remove('show');
-    document.getElementById('restoreFile').value = '';
-}
+function openRestoreModal(){ renderAutoBackupList(); document.getElementById('restoreModal').classList.add('show'); }
+function closeRestoreModal(){ document.getElementById('restoreModal').classList.remove('show'); document.getElementById('restoreFile').value = ''; }
 
 function restoreFromFile(input){
     const file = input.files[0];
     if(!file) return;
-    
     const reader = new FileReader();
     reader.onload = function(e){
         try {
             const backupData = JSON.parse(e.target.result);
-            
-            if(confirm('현재 데이터를 백업 파일로 교체하시겠습니까?\n\n(현재 데이터는 자동 백업에 저장됩니다)')){
+            if(confirm('현재 데이터를 백업 파일로 교체하시겠습니까?')){
                 createAutoBackup();
-                
                 if(backupData.schedules) schedules = backupData.schedules;
                 if(backupData.templates) templates = backupData.templates;
                 if(backupData.memos) memos = backupData.memos;
                 if(backupData.alarmSettings) alarmSettings = backupData.alarmSettings;
-                
-                ensureScheduleIds();
-                saveData();
-                updateAllTimes();
-                renderMemos();
-                
-                if(alarmSettings.enabled){
-                    document.getElementById('alarmEnabled').checked = true;
-                    document.getElementById('alarmMinutes').value = alarmSettings.minutesBefore;
-                    initAlarmSystem();
-                }
-                
-                closeRestoreModal();
-                alert('백업 파일이 복원되었습니다!');
+                ensureScheduleIds(); saveData(); updateAllTimes(); renderMemos();
+                if(alarmSettings.enabled){ document.getElementById('alarmEnabled').checked = true; document.getElementById('alarmMinutes').value = alarmSettings.minutesBefore; initAlarmSystem(); }
+                closeRestoreModal(); alert('백업 파일이 복원되었습니다!');
             }
-        } catch(err) {
-            alert('백업 파일을 읽을 수 없습니다.\n올바른 백업 파일인지 확인해주세요.');
-            console.error('복원 오류:', err);
-        }
+        } catch(err) { alert('백업 파일을 읽을 수 없습니다.'); }
     };
     reader.readAsText(file);
 }
@@ -1915,355 +1055,55 @@ function restoreFromFile(input){
 function checkAndCreateAutoBackup(){
     const today = new Date().toDateString();
     const lastBackup = localStorage.getItem('lastAutoBackup');
-    
-    if(lastBackup !== today){
-        createAutoBackup();
-        localStorage.setItem('lastAutoBackup', today);
-        cleanOldBackups();
-    }
+    if(lastBackup !== today){ createAutoBackup(); localStorage.setItem('lastAutoBackup', today); cleanOldBackups(); }
 }
 
 function createAutoBackup(){
-    const backupData = {
-        schedules: schedules,
-        templates: templates,
-        memos: memos,
-        alarmSettings: alarmSettings
-    };
-    
-    const today = new Date().toISOString().split('T')[0];
-    const backupKey = `autoBackup_${today}`;
-    
-    localStorage.setItem(backupKey, JSON.stringify(backupData));
+    const backupData = { schedules, templates, memos, alarmSettings };
+    localStorage.setItem(`autoBackup_${new Date().toISOString().split('T')[0]}`, JSON.stringify(backupData));
 }
 
 function cleanOldBackups(){
-    const keys = Object.keys(localStorage);
-    const backupKeys = keys.filter(k => k.startsWith('autoBackup_')).sort().reverse();
-    
-    if(backupKeys.length > 7){
-        backupKeys.slice(7).forEach(key => {
-            localStorage.removeItem(key);
-        });
-    }
+    const backupKeys = Object.keys(localStorage).filter(k => k.startsWith('autoBackup_')).sort().reverse();
+    if(backupKeys.length > 7) backupKeys.slice(7).forEach(key => localStorage.removeItem(key));
 }
 
 function renderAutoBackupList(){
     const container = document.getElementById('autoBackupList');
-    const keys = Object.keys(localStorage);
-    const backupKeys = keys.filter(k => k.startsWith('autoBackup_')).sort().reverse();
-    
-    if(backupKeys.length === 0){
-        container.innerHTML = '<div class="backup-empty">저장된 자동 백업이 없습니다.</div>';
-        return;
-    }
+    const backupKeys = Object.keys(localStorage).filter(k => k.startsWith('autoBackup_')).sort().reverse();
+    if(backupKeys.length === 0){ container.innerHTML = '<div class="backup-empty">저장된 자동 백업이 없습니다.</div>'; return; }
     
     container.innerHTML = backupKeys.map(key => {
         const date = key.replace('autoBackup_', '');
         const backupData = JSON.parse(localStorage.getItem(key));
-        const scheduleCount = backupData.schedules?.length || 0;
-        const memoCount = backupData.memos?.length || 0;
-        
-        const today = new Date().toISOString().split('T')[0];
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        
-        let label = date;
-        if(date === today) label += ' (오늘)';
-        else if(date === yesterday) label += ' (어제)';
-        
         return `
             <div class="backup-item" onclick="restoreFromAutoBackup('${key}')">
-                <div>
-                    <div class="backup-date">${label}</div>
-                    <div class="backup-time">일정 ${scheduleCount}개 · 메모 ${memoCount}개</div>
-                </div>
+                <div><div class="backup-date">${date}</div><div class="backup-time">일정 ${backupData.schedules?.length||0}개</div></div>
                 <div style="color:#3498db; font-size:14px;">→</div>
-            </div>
-        `;
+            </div>`;
     }).join('');
 }
 
 function restoreFromAutoBackup(backupKey){
-    if(confirm('이 시점의 백업으로 복원하시겠습니까?\n\n(현재 데이터는 자동 백업에 저장됩니다)')){
+    if(confirm('이 시점의 백업으로 복원하시겠습니까?')){
         createAutoBackup();
-        
         const backupData = JSON.parse(localStorage.getItem(backupKey));
-        
         if(backupData.schedules) schedules = backupData.schedules;
         if(backupData.templates) templates = backupData.templates;
         if(backupData.memos) memos = backupData.memos;
         if(backupData.alarmSettings) alarmSettings = backupData.alarmSettings;
-        
-        ensureScheduleIds();
-        saveData();
-        updateAllTimes();
-        renderMemos();
-        
-        if(alarmSettings.enabled){
-            document.getElementById('alarmEnabled').checked = true;
-            document.getElementById('alarmMinutes').value = alarmSettings.minutesBefore;
-            initAlarmSystem();
-        }
-        
-        closeRestoreModal();
-        alert('백업이 복원되었습니다!');
+        ensureScheduleIds(); saveData(); updateAllTimes(); renderMemos();
+        if(alarmSettings.enabled){ document.getElementById('alarmEnabled').checked = true; initAlarmSystem(); }
+        closeRestoreModal(); alert('백업이 복원되었습니다!');
     }
 }
 
-let lastRenderState = '';
-
+// 1초마다 상태 업데이트 (RenderTable 대신 updateRowStyles 사용)
 setInterval(() => {
-    const nowH = nowInHours();
     calculateTimes();
-    
-    // 현재 상태 체크
-    let currentState = '';
-    schedules.forEach(s => {
-        if(nowH >= s.startNum && nowH < s.endNum){
-            currentState += `active:${s.id},`;
-        }
-        if(nowH >= s.endNum && s.completed){
-            currentState += `completed:${s.id},`;
-        }
-    });
-    
-    // 상태가 변경되었을 때만 렌더링
-    if(currentState !== lastRenderState){
-        lastRenderState = currentState;
-        renderTable();
-    }
+    updateRowStyles();
+    updateStats();
 }, 1000);
-
-// 전역 이벤트 리스너 (한 번만 등록)
-document.addEventListener('DOMContentLoaded', function() {
-    // 키보드 이벤트 핸들러
-    document.getElementById('scheduleBody').addEventListener('keydown', function(e) {
-        const target = e.target;
-        if(!target.classList.contains('task-input') && !target.classList.contains('memo-input-cell')) return;
-        
-        const tr = target.closest('tr');
-        if(!tr) return;
-        
-        const tbody = document.getElementById('scheduleBody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        const idx = rows.indexOf(tr);
-        
-        if(idx === -1 || idx >= schedules.length) return;
-        
-        const isTaskInput = target.classList.contains('task-input');
-        
-        // Shift + Enter: 줄바꿈
-        if(e.shiftKey && e.key === 'Enter'){
-            return;
-        }
-        
-        // 시간 단위 조절 (업무칸만)
-        if(isTaskInput && e.ctrlKey && e.key === '='){
-            e.preventDefault();
-            schedules[idx].duration = Math.min(24, schedules[idx].duration + 0.5);
-            calculateTimes();
-            saveData();
-            updateStats();
-            updateTimeDisplay();
-            setTimeout(() => target.focus(), 10);
-            return;
-        }
-        
-        if(isTaskInput && e.ctrlKey && e.key === '-'){
-            e.preventDefault();
-            schedules[idx].duration = Math.max(0.5, schedules[idx].duration - 0.5);
-            calculateTimes();
-            saveData();
-            updateStats();
-            updateTimeDisplay();
-            setTimeout(() => target.focus(), 10);
-            return;
-        }
-        
-        if(isTaskInput && e.ctrlKey && ['1','2','3','4'].includes(e.key)){
-            e.preventDefault();
-            const timeMap = {'1': 0.5, '2': 1, '3': 2, '4': 3};
-            schedules[idx].duration = timeMap[e.key];
-            calculateTimes();
-            saveData();
-            updateStats();
-            updateTimeDisplay();
-            setTimeout(() => target.focus(), 10);
-            return;
-        }
-        
-        // 행 이동 (업무칸만)
-        if(isTaskInput && e.altKey && e.key === 'ArrowUp'){
-            e.preventDefault();
-            if(idx === 0) return;
-            schedules[idx].task = target.value;
-            const cursorPos = target.selectionStart;
-            [schedules[idx - 1], schedules[idx]] = [schedules[idx], schedules[idx - 1]];
-            calculateTimes();
-            saveData();
-            skipCompletedCheck = true;
-            renderTable();
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('.task-input');
-                if(inputs[idx - 1]) {
-                    inputs[idx - 1].focus();
-                    inputs[idx - 1].setSelectionRange(cursorPos, cursorPos);
-                }
-            }, 50);
-            return;
-        }
-        
-        if(isTaskInput && e.altKey && e.key === 'ArrowDown'){
-            e.preventDefault();
-            if(idx >= schedules.length - 1) return;
-            schedules[idx].task = target.value;
-            const cursorPos = target.selectionStart;
-            [schedules[idx], schedules[idx + 1]] = [schedules[idx + 1], schedules[idx]];
-            calculateTimes();
-            saveData();
-            skipCompletedCheck = true;
-            renderTable();
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('.task-input');
-                if(inputs[idx + 1]) {
-                    inputs[idx + 1].focus();
-                    inputs[idx + 1].setSelectionRange(cursorPos, cursorPos);
-                }
-            }, 50);
-            return;
-        }
-        
-        // 행 복제 (업무칸만)
-        if(isTaskInput && e.ctrlKey && e.key === 'd'){
-            e.preventDefault();
-            
-            schedules[idx].task = target.value;
-            lastOperationTime = Date.now();
-            const newSchedule = createSchedule(schedules[idx].duration, schedules[idx].task, false);
-            if(schedules[idx].memo) newSchedule.memo = schedules[idx].memo;
-            schedules.splice(idx + 1, 0, newSchedule);
-            ensureScheduleIds();
-            calculateTimes();
-            saveData();
-            skipCompletedCheck = true;
-            renderTable();
-            
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('.task-input');
-                if(inputs[idx + 1]) {
-                    inputs[idx + 1].focus();
-                    inputs[idx + 1].setSelectionRange(0, 0);
-                }
-            }, 20);
-            return;
-        }
-        
-        // 행 삭제 (업무칸, 메모칸 모두)
-        if(e.ctrlKey && e.key === 'Backspace'){
-            e.preventDefault();
-            if(schedules.length === 1) return;
-            
-            lastOperationTime = Date.now();
-            
-            deletedHistory.push({
-                index: idx,
-                data: JSON.parse(JSON.stringify(schedules[idx]))
-            });
-            
-            schedules.splice(idx, 1);
-            ensureScheduleIds();
-            calculateTimes();
-            saveData();
-            skipCompletedCheck = true;
-            
-            // 삭제 후 포커스할 인덱스 계산
-            const nextFocusIdx = Math.min(idx, schedules.length - 1);
-            renderTable();
-            
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('.task-input');
-                if(inputs[nextFocusIdx]) {
-                    inputs[nextFocusIdx].focus();
-                    inputs[nextFocusIdx].setSelectionRange(0, 0);
-                }
-            }, 20);
-            return;
-        }
-        
-        // 행 추가 (업무칸, 메모칸 모두)
-        if(e.ctrlKey && e.key === 'Enter'){
-            e.preventDefault();
-            
-            if(isTaskInput) {
-                schedules[idx].task = target.value;
-            } else {
-                schedules[idx].memo = target.value;
-            }
-            
-            lastOperationTime = Date.now();
-            const newSchedule = createSchedule(1, '', false);
-            schedules.splice(idx + 1, 0, newSchedule);
-            ensureScheduleIds();
-            calculateTimes();
-            saveData();
-            skipCompletedCheck = true;
-            renderTable();
-            
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('.task-input');
-                if(inputs[idx + 1]) {
-                    inputs[idx + 1].focus();
-                    inputs[idx + 1].setSelectionRange(0, 0);
-                }
-            }, 20);
-            return;
-        }
-        
-        // 메모칸 화살표 이동
-        if(!isTaskInput && !e.ctrlKey && !e.altKey){
-            if(e.key === 'ArrowLeft' && target.selectionStart === 0){
-                e.preventDefault();
-                schedules[idx].memo = target.value;
-                saveData();
-                setTimeout(() => {
-                    const taskInputs = document.querySelectorAll('.task-input');
-                    if(taskInputs[idx]) {
-                        taskInputs[idx].focus();
-                        taskInputs[idx].selectionStart = taskInputs[idx].value.length;
-                        taskInputs[idx].selectionEnd = taskInputs[idx].value.length;
-                    }
-                }, 0);
-                return;
-            }
-            
-            if(e.key === 'ArrowUp'){
-                e.preventDefault();
-                schedules[idx].memo = target.value;
-                saveData();
-                if(idx > 0){
-                    setTimeout(() => {
-                        const memoInputs = document.querySelectorAll('.memo-input-cell');
-                        if(memoInputs[idx - 1]) memoInputs[idx - 1].focus();
-                    }, 0);
-                }
-                return;
-            }
-            
-            if(e.key === 'ArrowDown'){
-                e.preventDefault();
-                schedules[idx].memo = target.value;
-                saveData();
-                if(idx < schedules.length - 1){
-                    setTimeout(() => {
-                        const memoInputs = document.querySelectorAll('.memo-input-cell');
-                        if(memoInputs[idx + 1]) memoInputs[idx + 1].focus();
-                    }, 0);
-                }
-                return;
-            }
-        }
-    });
-});
 
 loadData();
 </script>
