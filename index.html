@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>일정관리 시스템 (타임테이블 수정됨)</title>
+    <title>일정관리 시스템 (알람기능 강화)</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>⏰</text></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -129,13 +129,131 @@
         .form-group input[type="text"], .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .form-group textarea { resize: vertical; min-height: 80px; font-family: inherit; }
         
-        .alarm-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .alarm-toggle { display: flex; align-items: center; gap: 10px; font-size: 15px; }
-        .alarm-toggle input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-        .alarm-info { margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 13px; color: #1565c0; line-height: 1.6; }
+        /* === 개선된 알람 설정 스타일 === */
+        .alarm-header-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+        .switch-label {
+            font-weight: 600;
+            font-size: 16px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /* 토글 스위치 디자인 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196f3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .alarm-settings-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .alarm-setting-card {
+            flex: 1;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            background: #fff;
+            transition: all 0.2s;
+        }
+        .alarm-setting-card:hover {
+            border-color: #2196f3;
+            box-shadow: 0 2px 8px rgba(33,150,243,0.1);
+        }
+        .alarm-setting-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .alarm-setting-title {
+            font-size: 14px;
+            color: #5f6368;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .alarm-input-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .alarm-input-wrapper input {
+            width: 60px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c3e50;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 8px;
+        }
+        .alarm-unit {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        .alarm-helper-text {
+            font-size: 11px;
+            color: #95a5a6;
+            margin-top: 6px;
+        }
+
+        .alarm-info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #1565c0;
+            line-height: 1.6;
+            margin-top: 20px;
+        }
 
         /* ========================================
-           타임테이블 스타일 (수정됨 - 상단 여백 추가)
+           타임테이블 스타일 (최종 수정)
            ======================================== */
         .timetable-container {
             display: none;
@@ -161,8 +279,9 @@
             position: relative;
             height: 1200px;
             overflow-y: auto;
-            padding-top: 20px; /* 상단 9:00 글자 잘림 방지 */
+            padding-top: 20px;
             box-sizing: border-box;
+            background: #f8f9fa;
         }
         
         .time-column {
@@ -227,8 +346,40 @@
         }
         
         .event-block.meal { background: #F3E8FF; border-left-color: #9b59b6; }
-        .event-block.completed { background: #f5f5f5; border-left-color: #bdc3c7; color: #95a5a6; text-decoration: line-through; opacity: 0.9; }
-        .event-block.active { background: #FFF9E6; border-left-color: #f1c40f; border: 2px solid #f1c40f; z-index: 5; }
+        .event-block.completed { background: #f5f5f5; border-left-color: #bdc3c7; color: #95a5a6; opacity: 0.9; }
+        
+        .event-block.active { 
+            background: #FFF9E6; 
+            border-left: 4px solid #f1c40f;
+            border-top: none; 
+            border-right: none; 
+            border-bottom: none; 
+            z-index: 5; 
+        }
+
+        /* 30분 이하일 때 스타일 변경 (가로 배치) */
+        .event-block.small-height {
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 8px;
+        }
+        
+        .event-block.small-height .event-time {
+            margin-bottom: 0;
+            white-space: nowrap;
+            font-size: 12px;
+        }
+        
+        .event-block.small-height .event-title {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            font-size: 12px;
+            margin-top: 1px;
+        }
 
         .event-time { font-size: 11px; color: inherit; opacity: 0.85; margin-bottom: 2px; display: block; font-weight: 500; }
         .event-title { font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -315,7 +466,66 @@
 <!-- 모달들 -->
 <div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📋 템플릿 관리</h2><span class="modal-close" onclick="closeTemplateModal()">&times;</span></div><div class="modal-body"><button class="btn-soft-green" onclick="openSaveTemplateModal()" style="width:100%; margin-bottom:20px;">💾 현재 일정을 템플릿으로 저장</button><div id="templateList"></div></div></div></div>
 <div id="saveTemplateModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>💾 템플릿 저장</h2><span class="modal-close" onclick="closeSaveTemplateModal()">&times;</span></div><div class="modal-body"><div class="form-group"><label>템플릿 이름</label><input type="text" id="templateName" placeholder="예: 평일 루틴" /></div></div><div class="modal-footer"><button class="btn-soft-orange" onclick="closeSaveTemplateModal()">취소</button><button class="btn-soft-green" onclick="saveTemplate()">저장</button></div></div></div>
-<div id="alarmModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>🔔 알람 설정</h2><span class="modal-close" onclick="closeAlarmModal()">&times;</span></div><div class="modal-body"><div class="alarm-section"><label class="alarm-toggle"><input type="checkbox" id="alarmEnabled" onchange="toggleAlarm(this.checked)"><span style="font-weight:600;">알람 활성화</span></label></div><div class="form-group"><label>종료 몇 분 전에 알림</label><input type="number" id="alarmMinutes" value="5" min="1" max="60" onchange="saveAlarmSettings()"><span style="margin-left:8px; color:#7f8c8d;">분</span></div><button class="btn-soft-blue" onclick="testAlarm()" style="width:100%; padding:12px; font-size:14px;">🔔 알람 테스트</button><div class="alarm-info">💡 알람을 받으려면 브라우저 알림 권한이 필요합니다.<br>• 시작 알림: 각 할일 시작 시점<br>• 종료 알림: 설정한 시간 전</div></div><div class="modal-footer"><button class="btn-soft-green" onclick="closeAlarmModal()">확인</button></div></div></div>
+
+<!-- 개선된 알람 설정 모달 -->
+<div id="alarmModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>🔔 알람 설정</h2>
+            <span class="modal-close" onclick="closeAlarmModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <!-- 메인 스위치 -->
+            <div class="alarm-header-switch">
+                <div class="switch-label">
+                    <span>🔔 알람 활성화</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="alarmEnabled" onchange="toggleAlarm(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <!-- 설정 카드 그룹 -->
+            <div class="alarm-settings-group">
+                <!-- 시작 알람 설정 -->
+                <div class="alarm-setting-card">
+                    <span class="alarm-setting-icon">🎬</span>
+                    <div class="alarm-setting-title">시작 알림</div>
+                    <div class="alarm-input-wrapper">
+                        <input type="number" id="alarmStartMinutes" value="0" min="0" max="60" onchange="saveAlarmSettings()">
+                        <span class="alarm-unit">분 전</span>
+                    </div>
+                    <div class="alarm-helper-text">0분: 정시 알림</div>
+                </div>
+
+                <!-- 종료 알람 설정 -->
+                <div class="alarm-setting-card">
+                    <span class="alarm-setting-icon">🏁</span>
+                    <div class="alarm-setting-title">종료 알림</div>
+                    <div class="alarm-input-wrapper">
+                        <input type="number" id="alarmEndMinutes" value="5" min="1" max="60" onchange="saveAlarmSettings()">
+                        <span class="alarm-unit">분 전</span>
+                    </div>
+                    <div class="alarm-helper-text">종료 전 미리 알림</div>
+                </div>
+            </div>
+
+            <button class="btn-soft-blue" onclick="testAlarm()" style="width:100%; padding:12px; font-size:14px; border-radius:8px;">🔔 알람 테스트</button>
+            
+            <div class="alarm-info-box">
+                💡 <b>알람이 울리지 않나요?</b><br>
+                • 브라우저의 알림 권한을 '허용'해주세요.<br>
+                • 방해 금지 모드가 켜져 있는지 확인해주세요.<br>
+                • 창을 닫지 않고 켜두셔야 알림이 작동합니다.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-soft-green" onclick="closeAlarmModal()">확인</button>
+        </div>
+    </div>
+</div>
+
 <div id="restoreModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📂 데이터 복원</h2><span class="modal-close" onclick="closeRestoreModal()">&times;</span></div><div class="modal-body"><div class="form-group"><label>📁 파일에서 복원</label><input type="file" id="restoreFile" accept=".json" onchange="restoreFromFile(this)" style="padding:10px; background:#f8f9fa; border-radius:8px;"></div><div class="form-group" style="margin-top:30px;"><label>🕐 자동 백업에서 복원</label><div id="autoBackupList" style="max-height:300px; overflow-y:auto;"></div></div></div><div class="modal-footer"><button class="btn-soft-orange" onclick="closeRestoreModal()">닫기</button></div></div></div>
 <div id="addDdayModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>🎯 디데이 추가</h2><span class="modal-close" onclick="closeAddDdayModal()">&times;</span></div><div class="modal-body"><div class="form-group"><label>프로젝트 이름</label><input type="text" id="ddayTitle" placeholder="" /></div><div class="form-group"><label>마감일</label><input type="date" id="ddayDate" /></div></div><div class="modal-footer"><button class="btn-soft-orange" onclick="closeAddDdayModal()">취소</button><button class="btn-soft-green" onclick="saveDday()">추가</button></div></div></div>
 
@@ -327,7 +537,8 @@ let schedules = [];
 let templates = [];
 let draggedIndex = null;
 let dragSource = null; 
-let alarmSettings = { enabled: false, minutesBefore: 5 };
+// 알람 설정 구조 변경: startMinutes 추가
+let alarmSettings = { enabled: false, startMinutes: 0, endMinutes: 5 };
 let notifiedTasks = new Set();
 let alarmCheckInterval = null;
 let deletedHistory = [];
@@ -395,11 +606,26 @@ function loadData(){
     if(saved){ schedules = JSON.parse(saved); } else { schedules = [ createSchedule(1, '', false) ]; }
     ensureScheduleIds();
     if(savedTemplates){ templates = JSON.parse(savedTemplates); }
+    
+    // 알람 설정 로드 및 마이그레이션
     if(savedAlarmSettings){
-        alarmSettings = JSON.parse(savedAlarmSettings);
+        const parsed = JSON.parse(savedAlarmSettings);
+        // 구버전 호환성 처리 (minutesBefore -> endMinutes)
+        if(parsed.minutesBefore !== undefined && parsed.endMinutes === undefined) {
+            alarmSettings = { 
+                enabled: parsed.enabled, 
+                startMinutes: 0, 
+                endMinutes: parsed.minutesBefore 
+            };
+        } else {
+            alarmSettings = parsed;
+        }
+        // UI 업데이트
         document.getElementById('alarmEnabled').checked = alarmSettings.enabled;
-        document.getElementById('alarmMinutes').value = alarmSettings.minutesBefore;
+        document.getElementById('alarmStartMinutes').value = alarmSettings.startMinutes || 0;
+        document.getElementById('alarmEndMinutes').value = alarmSettings.endMinutes || 5;
     }
+    
     if(savedMemos){ memos = JSON.parse(savedMemos); }
     if(savedDdays){ ddays = JSON.parse(savedDdays); }
     
@@ -553,7 +779,7 @@ function renderTable(){
 }
 
 /* ------------------------------
-   타임테이블 로직 (개선됨 - 겹침 처리 + 12시간제)
+   타임테이블 로직 (개선됨 - 겹침 처리 + 12시간제 + 스타일 수정)
 ------------------------------ */
 function toggleTimetable() {
     isTimetableMode = !isTimetableMode;
@@ -590,9 +816,8 @@ function renderTimetable() {
     schedules.forEach(s => { if(s.endNum > maxEnd) maxEnd = Math.ceil(s.endNum); });
     maxEnd += 1;
 
-    // 시간 라벨 (30분 포함)
+    // 시간 라벨
     for (let h = startHour; h <= maxEnd; h++) {
-        // 정시
         const label = document.createElement('div');
         label.className = 'time-label';
         label.style.top = `${(h - startHour) * hourHeight}px`;
@@ -600,10 +825,9 @@ function renderTimetable() {
         label.textContent = `${t12.h}:00`;
         timeCol.appendChild(label);
         
-        // 30분 보조 라벨 (추가됨)
         const subLabel = document.createElement('div');
         subLabel.className = 'time-label-sub';
-        subLabel.style.top = `${(h - startHour) * hourHeight + 30}px`; // 30분 위치
+        subLabel.style.top = `${(h - startHour) * hourHeight + 30}px`; 
         subLabel.textContent = `${t12.h}:30`;
         timeCol.appendChild(subLabel);
     }
@@ -653,8 +877,11 @@ function renderTimetable() {
         if(isMeal) div.classList.add('meal');
         if(s.completed) div.classList.add('completed');
         if(nowH >= s.startNum && nowH < s.endNum) div.classList.add('active');
+        
+        if (s.duration <= 0.5) {
+            div.classList.add('small-height');
+        }
 
-        // 12시간제 표시 변환
         const start12 = to12Hour(s.startNum);
         const end12 = to12Hour(s.endNum);
         const timeStr = `${start12.h}:${start12.m} - ${end12.h}:${end12.m}`;
@@ -755,23 +982,103 @@ function deleteTemplate(index){ if(confirm('이 템플릿을 삭제하시겠습�
 async function initAlarmSystem(){ if('Notification' in window && Notification.permission === 'default'){ await Notification.requestPermission(); } if(alarmSettings.enabled) startAlarmCheck(); }
 function startAlarmCheck(){ if(alarmCheckInterval) clearInterval(alarmCheckInterval); alarmCheckInterval = setInterval(() => { checkAndNotify(nowInHours()); }, 10000); checkAndNotify(nowInHours()); }
 function stopAlarmCheck(){ if(alarmCheckInterval){ clearInterval(alarmCheckInterval); alarmCheckInterval = null; } }
-function checkAndNotify(nowH){ if(!alarmSettings.enabled || Notification.permission !== 'granted') return; calculateTimes(); schedules.forEach((s) => { if(s.completed) return; const startKey = `start-${s.id}`; const endKey = `end-${s.id}`; if(nowH >= s.startNum && nowH < s.startNum + WINDOW && !notifiedTasks.has(startKey)){ notifiedTasks.add(startKey); showStartNotification(s); } const alarmTime = s.endNum - (alarmSettings.minutesBefore / 60); if(nowH >= alarmTime && nowH < alarmTime + WINDOW && !notifiedTasks.has(endKey)){ notifiedTasks.add(endKey); showEndNotification(s); } }); }
-function showStartNotification(currentTask){ const notification = new Notification('🎯 할일 시작', { body: `[현재 할일]\n${currentTask.task || '할일 없음'}`, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🎯</text></svg>', tag: 'schedule-start-' + Date.now(), requireInteraction: true, silent: false }); notification.onclick = function(){ window.focus(); this.close(); }; }
-function showEndNotification(currentTask){ const notification = new Notification(`📅 ${alarmSettings.minutesBefore}분 전 종료`, { body: `[현재 할일]\n${currentTask.task || '할일 없음'}`, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">📅</text></svg>', tag: 'schedule-end-' + Date.now(), requireInteraction: true, silent: false }); notification.onclick = function(){ window.focus(); this.close(); }; }
+
+function checkAndNotify(nowH){ 
+    if(!alarmSettings.enabled || Notification.permission !== 'granted') return; 
+    calculateTimes(); 
+    
+    schedules.forEach((s) => { 
+        if(s.completed) return; 
+        const startKey = `start-${s.id}`; 
+        const endKey = `end-${s.id}`; 
+        
+        // 시작 알림 계산 (설정된 분만큼 미리)
+        const startAlarmTime = s.startNum - (alarmSettings.startMinutes / 60);
+        
+        if(nowH >= startAlarmTime && nowH < startAlarmTime + WINDOW && !notifiedTasks.has(startKey)){ 
+            notifiedTasks.add(startKey); 
+            showStartNotification(s); 
+        } 
+        
+        // 종료 알림 계산 (설정된 분만큼 미리)
+        const endAlarmTime = s.endNum - (alarmSettings.endMinutes / 60);
+        
+        if(nowH >= endAlarmTime && nowH < endAlarmTime + WINDOW && !notifiedTasks.has(endKey)){ 
+            notifiedTasks.add(endKey); 
+            showEndNotification(s); 
+        } 
+    }); 
+}
+
+function showStartNotification(currentTask){ 
+    const timeText = alarmSettings.startMinutes > 0 ? `${alarmSettings.startMinutes}분 전` : '지금 시작';
+    const notification = new Notification(`🎬 ${timeText}: ${currentTask.task || '할일'}`, { 
+        body: `[시작] ${currentTask.start} - ${currentTask.end}`, 
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🎬</text></svg>', 
+        tag: 'schedule-start-' + Date.now(), 
+        requireInteraction: true, 
+        silent: false 
+    }); 
+    notification.onclick = function(){ window.focus(); this.close(); }; 
+}
+
+function showEndNotification(currentTask){ 
+    const notification = new Notification(`⌛ 종료 ${alarmSettings.endMinutes}분 전: ${currentTask.task || '할일'}`, { 
+        body: `[종료 임박] ${currentTask.start} - ${currentTask.end}`, 
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">⌛</text></svg>', 
+        tag: 'schedule-end-' + Date.now(), 
+        requireInteraction: true, 
+        silent: false 
+    }); 
+    notification.onclick = function(){ window.focus(); this.close(); }; 
+}
+
 function openAlarmModal(){ document.getElementById('alarmModal').classList.add('show'); }
 function closeAlarmModal(){ document.getElementById('alarmModal').classList.remove('show'); }
-function toggleAlarm(enabled){ alarmSettings.enabled = enabled; saveAlarmSettings(); if(enabled) initAlarmSystem(); else stopAlarmCheck(); }
-function saveAlarmSettings(){ alarmSettings.minutesBefore = parseInt(document.getElementById('alarmMinutes').value) || 5; alarmSettings.enabled = document.getElementById('alarmEnabled').checked; saveData(); if(alarmSettings.enabled){ startAlarmCheck(); alert('알람 설정이 저장되었습니다!'); } else { stopAlarmCheck(); } }
-async function testAlarm(){ if(Notification.permission !== 'granted'){ const permission = await Notification.requestPermission(); if(permission !== 'granted'){ alert('알림 권한이 거부되었습니다.'); return; } } const notification = new Notification('🔔 알람 테스트', { body: `종료 ${alarmSettings.minutesBefore}분 전\n\n다음 할일: 테스트 할일`, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🔔</text></svg>', tag: 'test-alarm-' + Date.now(), requireInteraction: true }); notification.onclick = function(){ window.focus(); this.close(); }; }
+
+function toggleAlarm(enabled){ 
+    alarmSettings.enabled = enabled; 
+    saveAlarmSettings(); 
+    if(enabled) initAlarmSystem(); else stopAlarmCheck(); 
+}
+
+function saveAlarmSettings(){ 
+    alarmSettings.startMinutes = parseInt(document.getElementById('alarmStartMinutes').value) || 0;
+    alarmSettings.endMinutes = parseInt(document.getElementById('alarmEndMinutes').value) || 5;
+    alarmSettings.enabled = document.getElementById('alarmEnabled').checked; 
+    saveData(); 
+    
+    if(alarmSettings.enabled){ 
+        startAlarmCheck(); 
+        // 설정 변경 시 즉시 알림 테스트는 하지 않음 (사용자가 원할 때만 버튼 클릭)
+    } else { 
+        stopAlarmCheck(); 
+    } 
+}
+
+async function testAlarm(){ 
+    if(Notification.permission !== 'granted'){ 
+        const permission = await Notification.requestPermission(); 
+        if(permission !== 'granted'){ alert('알림 권한이 거부되었습니다.'); return; } 
+    } 
+    
+    // 테스트 알림: 시작 알림과 종료 알림을 순차적으로 보여줌
+    new Notification('🔔 알람 테스트 (시작)', { body: `설정된 시간: 시작 ${alarmSettings.startMinutes}분 전 알림`, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🎬</text></svg>' });
+    
+    setTimeout(() => {
+        new Notification('🔔 알람 테스트 (종료)', { body: `설정된 시간: 종료 ${alarmSettings.endMinutes}분 전 알림`, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">⌛</text></svg>' });
+    }, 1000);
+}
+
 function downloadBackup(){ const backupData = { version: '1.0', date: new Date().toISOString(), schedules, templates, memos, alarmSettings }; const dataStr = JSON.stringify(backupData, null, 2); const blob = new Blob([dataStr], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `일정백업_${new Date().toISOString().split('T')[0]}.json`; link.click(); URL.revokeObjectURL(url); }
 function openRestoreModal(){ renderAutoBackupList(); document.getElementById('restoreModal').classList.add('show'); }
 function closeRestoreModal(){ document.getElementById('restoreModal').classList.remove('show'); document.getElementById('restoreFile').value = ''; }
-function restoreFromFile(input){ const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e){ try { const backupData = JSON.parse(e.target.result); if(confirm('현재 데이터를 백업 파일로 교체하시겠습니까?')){ createAutoBackup(); if(backupData.schedules) schedules = backupData.schedules; if(backupData.templates) templates = backupData.templates; if(backupData.memos) memos = backupData.memos; if(backupData.alarmSettings) alarmSettings = backupData.alarmSettings; ensureScheduleIds(); saveData(); updateAllTimes(); renderMemos(); if(alarmSettings.enabled){ document.getElementById('alarmEnabled').checked = true; document.getElementById('alarmMinutes').value = alarmSettings.minutesBefore; initAlarmSystem(); } closeRestoreModal(); alert('백업 파일이 복원되었습니다!'); } } catch(err) { alert('백업 파일을 읽을 수 없습니다.'); } }; reader.readAsText(file); }
+function restoreFromFile(input){ const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e){ try { const backupData = JSON.parse(e.target.result); if(confirm('현재 데이터를 백업 파일로 교체하시겠습니까?')){ createAutoBackup(); if(backupData.schedules) schedules = backupData.schedules; if(backupData.templates) templates = backupData.templates; if(backupData.memos) memos = backupData.memos; if(backupData.alarmSettings) alarmSettings = backupData.alarmSettings; ensureScheduleIds(); saveData(); updateAllTimes(); renderMemos(); if(alarmSettings.enabled){ document.getElementById('alarmEnabled').checked = true; document.getElementById('alarmStartMinutes').value = alarmSettings.startMinutes || 0; document.getElementById('alarmEndMinutes').value = alarmSettings.endMinutes || 5; initAlarmSystem(); } closeRestoreModal(); alert('백업 파일이 복원되었습니다!'); } } catch(err) { alert('백업 파일을 읽을 수 없습니다.'); } }; reader.readAsText(file); }
 function checkAndCreateAutoBackup(){ const today = new Date().toDateString(); const lastBackup = localStorage.getItem('lastAutoBackup'); if(lastBackup !== today){ createAutoBackup(); localStorage.setItem('lastAutoBackup', today); cleanOldBackups(); } }
 function createAutoBackup(){ const backupData = { schedules, templates, memos, alarmSettings }; localStorage.setItem(`autoBackup_${new Date().toISOString().split('T')[0]}`, JSON.stringify(backupData)); }
 function cleanOldBackups(){ const backupKeys = Object.keys(localStorage).filter(k => k.startsWith('autoBackup_')).sort().reverse(); if(backupKeys.length > 7) backupKeys.slice(7).forEach(key => localStorage.removeItem(key)); }
 function renderAutoBackupList(){ const container = document.getElementById('autoBackupList'); const backupKeys = Object.keys(localStorage).filter(k => k.startsWith('autoBackup_')).sort().reverse(); if(backupKeys.length === 0){ container.innerHTML = '<div class="backup-empty">저장된 자동 백업이 없습니다.</div>'; return; } container.innerHTML = backupKeys.map(key => { const date = key.replace('autoBackup_', ''); const backupData = JSON.parse(localStorage.getItem(key)); return `<div class="backup-item" onclick="restoreFromAutoBackup('${key}')"><div><div class="backup-date">${date}</div><div class="backup-time">일정 ${backupData.schedules?.length||0}개</div></div><div style="color:#3498db; font-size:14px;">→</div></div>`; }).join(''); }
-function restoreFromAutoBackup(backupKey){ if(confirm('이 시점의 백업으로 복원하시겠습니까?')){ createAutoBackup(); const backupData = JSON.parse(localStorage.getItem(backupKey)); if(backupData.schedules) schedules = backupData.schedules; if(backupData.templates) templates = backupData.templates; if(backupData.memos) memos = backupData.memos; if(backupData.alarmSettings) alarmSettings = backupData.alarmSettings; ensureScheduleIds(); saveData(); updateAllTimes(); renderMemos(); if(alarmSettings.enabled){ document.getElementById('alarmEnabled').checked = true; initAlarmSystem(); } closeRestoreModal(); alert('백업이 복원되었습니다!'); } }
+function restoreFromAutoBackup(backupKey){ if(confirm('이 시점의 백업으로 복원하시겠습니까?')){ createAutoBackup(); const backupData = JSON.parse(localStorage.getItem(backupKey)); if(backupData.schedules) schedules = backupData.schedules; if(backupData.templates) templates = backupData.templates; if(backupData.memos) memos = backupData.memos; if(backupData.alarmSettings) alarmSettings = backupData.alarmSettings; ensureScheduleIds(); saveData(); updateAllTimes(); renderMemos(); if(alarmSettings.enabled){ document.getElementById('alarmEnabled').checked = true; document.getElementById('alarmStartMinutes').value = alarmSettings.startMinutes || 0; document.getElementById('alarmEndMinutes').value = alarmSettings.endMinutes || 5; initAlarmSystem(); } closeRestoreModal(); alert('백업이 복원되었습니다!'); } }
 
 // 1초마다 상태 업데이트
 setInterval(() => { calculateTimes(); updateRowStyles(); updateStats(); if(isTimetableMode) renderTimetable(); }, 1000);
